@@ -11,7 +11,7 @@ import matplotlib.colors as mcolors
 st.set_page_config(layout="wide")
 
 # --- Load Data ---
-file_path = r"S:\TSCI\MCWE\MCWE-Projects\Watershed Services\4-Data & Research\Monitoring\Watershed Monitoring\CRP\3 - Data\2. Cypress Creek\Surface water\INPUT.CSV"
+file_path = r"INPUT.CSV"
 df = pd.read_csv(file_path, encoding='latin1')
 
 # --- Preprocess Date ---
