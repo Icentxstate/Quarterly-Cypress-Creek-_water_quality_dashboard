@@ -388,3 +388,24 @@ with adv_tabs[6]:
         st.pyplot(fig)        
 st.markdown("---")
 st.caption("Data Source: CRP Monitoring at Cypress Creek")
+from scipy.stats import shapiro
+
+with adv_tabs[7]:
+    st.subheader("Shapiro-Wilk Normality Test (per Site)")
+    for param in selected_parameters:
+        st.markdown(f"### {param}")
+        normality_results = []
+        for site in analysis_df['Site Name'].unique():
+            values = analysis_df[analysis_df['Site Name'] == site][param].dropna()
+            if len(values) >= 3:
+                stat, p_value = shapiro(values)
+                result = "Normal" if p_value > 0.05 else "Not Normal"
+                normality_results.append((site, round(stat, 3), round(p_value, 4), result))
+        if normality_results:
+            result_df = pd.DataFrame(normality_results, columns=["Site", "W Statistic", "P-value", "Interpretation"])
+            styled_df = result_df.style.applymap(
+                lambda val: "color: red;" if val == "Not Normal" else "color: green;", subset=["Interpretation"]
+            )
+            st.dataframe(styled_df)
+        else:
+            st.info(f"No valid data for {param}.")
