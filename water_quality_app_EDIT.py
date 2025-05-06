@@ -263,7 +263,7 @@ adv_tabs = st.tabs([
     "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
     "Non-linear Correlation", "Rolling Mean & Variance", "Trendline Regression",
     "PCA Analysis", "Hierarchical Clustering", "Radar Plot",
-    "Autocorrelation (ACF)"
+    "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting"
 ])
 
 # --- Seasonal Means ---
@@ -611,4 +611,51 @@ with adv_tabs[15]:
                 else:
                     st.info(f"Not enough data for ACF plot at Site ID {site_id}")
     else:
-        st.warning("Please select at least one parameter.")        
+        st.warning("Please select at least one parameter.")  
+# --- Partial Autocorrelation (PACF) ---
+from statsmodels.graphics.tsaplots import plot_pacf
+
+with adv_tabs[16]:
+    st.subheader("Partial Autocorrelation (PACF)")
+
+    for param in selected_parameters:
+        st.markdown(f"**PACF for {param}**")
+        for site_id in selected_sites:
+            site_df = analysis_df[analysis_df['Site ID'] == site_id]
+            series = site_df[['Date', param]].dropna().sort_values('Date')
+            if len(series) > 10:
+                fig, ax = plt.subplots(figsize=(8, 4))
+                plot_pacf(series[param], ax=ax, lags=20, method='ywm')
+                site_name = site_df['Site Name'].iloc[0]
+                ax.set_title(f"{param} – PACF at {site_name}")
+                st.pyplot(fig)
+            else:
+                st.info(f"Not enough data points for {param} at Site {site_id}")
+from prophet import Prophet
+
+with adv_tabs[17]:
+    st.subheader("Time Series Forecasting (Prophet)")
+
+    if selected_parameters:
+        for param in selected_parameters:
+            st.markdown(f"### Forecasting: {param}")
+            for site in selected_sites:
+                site_df = analysis_df[(analysis_df["Site ID"] == site)][['Date', param]].dropna()
+
+                if len(site_df) < 20:
+                    st.info(f"Not enough data to forecast for Site ID {site}")
+                    continue
+
+                df_prophet = site_df.rename(columns={"Date": "ds", param: "y"})
+                model = Prophet()
+                model.fit(df_prophet)
+
+                future = model.make_future_dataframe(periods=12, freq='M')
+                forecast = model.predict(future)
+
+                fig = model.plot(forecast)
+                st.pyplot(fig)
+    else:
+        st.info("Please select at least one parameter.")
+        
+        
