@@ -258,7 +258,9 @@ df['Season'] = df['Month'].apply(lambda m: "Winter" if m in [12, 1, 2] else
 st.markdown("## Advanced Analysis")
 
 adv_tabs = st.tabs([
-    "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter", "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap"
+    "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter", 
+    "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
+    "Boxplot by Site"
 ])
 
 # --- Seasonal Means ---
@@ -370,5 +372,19 @@ with adv_tabs[5]:
         ax.set_title(f"Heatmap of {param} by Site and Month")
         ax.set_xlabel("Month-Year")
         st.pyplot(fig)
+with adv_tabs[6]:
+    st.subheader("Boxplot of Parameters by Site")
+    for param in selected_parameters:
+        site_data = analysis_df[['Site Name', param]].dropna()
+        if site_data.empty:
+            st.warning(f"No valid data for {param}")
+            continue
+        fig, ax = plt.subplots(figsize=(10, 4))
+        sns.boxplot(data=site_data, x='Site Name', y=param, ax=ax)
+        ax.set_title(f"{param} – Distribution by Site")
+        ax.set_ylabel(param)
+        ax.set_xlabel("Site")
+        ax.tick_params(axis='x', rotation=45)
+        st.pyplot(fig)        
 st.markdown("---")
 st.caption("Data Source: CRP Monitoring at Cypress Creek")
