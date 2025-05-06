@@ -260,7 +260,7 @@ st.markdown("## Advanced Analysis")
 adv_tabs = st.tabs([
     "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter", 
     "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
-    "Boxplot by Site"
+    "Boxplot by Site", "Normality Test"
 ])
 
 # --- Seasonal Means ---
