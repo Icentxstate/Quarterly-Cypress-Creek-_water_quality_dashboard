@@ -112,29 +112,33 @@ analysis_df['Season'] = analysis_df['Month'].apply(lambda m: "Winter" if m in [1
                                                    "Spring" if m in [3, 4, 5] else
                                                    "Summer" if m in [6, 7, 8] else "Fall")
 analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp()
-if selected_parameters:
-    for param in selected_parameters:
-        with tabs[2]:
-            st.subheader(f"{param} – Annual Averages")
-            summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
-            st.dataframe(summary)
-        with tabs[1]:
-            st.subheader(f"{param} - Monthly Averages (Across Years)")
-# تعریف لیست نام ماه‌ها برای نمایش زیبا
-month_names = {
-    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
-    5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
-    9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
-}
+    with tabs[1]:  # Monthly Averages tab
+        st.subheader("Monthly Averages (Across Years)")
+        month_names = {
+            1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
+            5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
+            9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
+        }
 
-# محاسبه میانگین ماهانه
-monthly_avg = (
-    analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param]
-    .mean()
-    .unstack()
-    .round(2)
-)
+        for param in selected_parameters:
+            st.markdown(f"### {param}")
+            monthly_avg = (
+                analysis_df
+                .groupby([analysis_df['Date'].dt.month, 'Site Name'])[param]
+                .mean()
+                .unstack()
+                .round(2)
+            )
+            monthly_avg.index = monthly_avg.index.map(month_names)
 
+            fig, ax = plt.subplots(figsize=(10, 4))
+            monthly_avg.plot(kind='bar', ax=ax)
+            ax.set_title(f"Monthly Averages of {param}")
+            ax.set_xlabel("Month")
+            ax.set_ylabel(f"{param}")
+            ax.grid(True)
+            ax.legend(title="Site")
+            st.pyplot(fig)
 # تبدیل index عددی به نام ماه
 monthly_avg.index = monthly_avg.index.map(month_names)
 
