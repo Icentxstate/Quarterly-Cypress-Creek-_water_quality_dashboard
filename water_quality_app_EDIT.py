@@ -113,7 +113,21 @@ analysis_df['Season'] = analysis_df['Month'].apply(lambda m: "Winter" if m in [1
                                                    "Summer" if m in [6, 7, 8] else "Fall")
 analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp()
 if selected_parameters:
-
+    with tabs[0]:
+        st.subheader("Summary Statistics")
+        for param in selected_parameters:
+            st.markdown(f"### {param}")
+            summary = (
+                analysis_df
+                .groupby('Site Name')[param]
+                .agg(['mean', 'median', 'std', 'min', 'max', 'count'])
+                .round(2)
+                .rename(columns={
+                    'mean': 'Mean', 'median': 'Median', 'std': 'Std Dev',
+                    'min': 'Min', 'max': 'Max', 'count': 'Count'
+                })
+            )
+            st.dataframe(summary)
     with tabs[1]:
         st.subheader("Monthly Averages (Across Years)")
         month_names = {
