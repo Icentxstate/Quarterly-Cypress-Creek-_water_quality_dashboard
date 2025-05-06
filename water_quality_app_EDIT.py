@@ -105,8 +105,12 @@ tabs = st.tabs([
     "Export Data"
 ])
 
-analysis_df = df[df['Site ID'].isin(selected_sites)]
-
+analysis_df = df[df['Site ID'].isin(selected_sites)].copy()
+analysis_df['Month'] = analysis_df['Date'].dt.month
+analysis_df['Season'] = analysis_df['Month'].apply(lambda m: "Winter" if m in [12, 1, 2] else
+                                                   "Spring" if m in [3, 4, 5] else
+                                                   "Summer" if m in [6, 7, 8] else "Fall")
+analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp()
 if selected_parameters:
     for param in selected_parameters:
         with tabs[0]:
