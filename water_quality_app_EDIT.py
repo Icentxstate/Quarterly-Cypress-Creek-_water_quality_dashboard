@@ -114,7 +114,7 @@ analysis_df['Season'] = analysis_df['Month'].apply(lambda m: "Winter" if m in [1
 analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp()
 if selected_parameters:
 
-    with tabs[1]:  # ✅ فقط یک بار
+    with tabs[1]:
         st.subheader("Monthly Averages (Across Years)")
         month_names = {
             1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
@@ -137,23 +137,15 @@ if selected_parameters:
             monthly_avg.plot(kind='bar', ax=ax)
             ax.set_title(f"Monthly Averages of {param}")
             ax.set_xlabel("Month")
-            ax.set_ylabel(f"{param}")
+            ax.set_ylabel(param)
             ax.grid(True)
             ax.legend(title="Site")
-            st.pyplot(fig)    
-# تبدیل index عددی به نام ماه
-monthly_avg.index = monthly_avg.index.map(month_names)
+            st.pyplot(fig)
 
-# رسم نمودار میله‌ای
-fig, ax = plt.subplots(figsize=(10, 4))
-monthly_avg.plot(kind='bar', ax=ax)
-ax.set_title(f"{param} - Monthly Averages Across Years")
-ax.set_xlabel("Month")
-ax.set_ylabel(param)
-ax.grid(True)
-st.pyplot(fig)
-        with tabs[2]:
-            st.subheader(f"{param} - Annual Averages")
+    with tabs[2]:
+        st.subheader("Annual Averages")
+        for param in selected_parameters:
+            st.markdown(f"### {param}")
             annual_avg = (
                 analysis_df.copy()
                 .assign(Year=analysis_df['Date'].dt.year)
@@ -164,13 +156,14 @@ st.pyplot(fig)
                 .round(2)
             )
             fig, ax = plt.subplots(figsize=(10, 4))
-            sns.barplot(data=annual_avg.reset_index().melt(id_vars='Year'), x='Year', y='value', hue='Site Name', ax=ax)
-            ax.set_title(f"{param} - Annual Average Comparison")
+            sns.barplot(data=annual_avg.reset_index().melt(id_vars='Year'),
+                        x='Year', y='value', hue='Site Name', ax=ax)
+            ax.set_title(f"Annual Average of {param}")
             ax.set_xlabel("Year")
             ax.set_ylabel(param)
             ax.legend(title="Site")
             st.pyplot(fig)
-
+            
     with tabs[3]:
         st.subheader("Correlation Matrix of Selected Parameters")
         if len(selected_parameters) < 2:
