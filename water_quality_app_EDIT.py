@@ -261,7 +261,9 @@ adv_tabs = st.tabs([
     "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter",
     "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
     "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
-    "Non-linear Correlation", "Rolling Mean & Variance"
+    "Non-linear Correlation", "Rolling Mean & Variance", "Trendline Regression",
+    "PCA Analysis", "Hierarchical Clustering", "Radar Plot",
+    "Autocorrelation (ACF)"
 ])
 
 # --- Seasonal Means ---
@@ -477,4 +479,136 @@ with adv_tabs[10]:
             ax.set_ylabel(param)
             ax.grid(True)
             ax.legend()
-            st.pyplot(fig)                
+            st.pyplot(fig)
+from sklearn.linear_model import LinearRegression
+
+with adv_tabs[11]:
+    st.subheader("Trendline Regression Analysis")
+    for param in selected_parameters:
+        st.markdown(f"### {param}")
+        for site_id in selected_sites:
+            site_df = analysis_df[analysis_df['Site ID'] == site_id][['Date', param]].dropna()
+            site_df = site_df.sort_values('Date')
+            site_df = site_df.set_index('Date').resample('M').mean().interpolate()
+            site_df = site_df.reset_index().dropna()
+
+            if len(site_df) >= 6:
+                # تبدیل تاریخ به عدد
+                site_df['Ordinal'] = site_df['Date'].map(pd.Timestamp.toordinal)
+                X = site_df[['Ordinal']]
+                y = site_df[param]
+                model = LinearRegression()
+                model.fit(X, y)
+                y_pred = model.predict(X)
+
+                fig, ax = plt.subplots(figsize=(10, 4))
+                ax.plot(site_df['Date'], y, label="Observed", alpha=0.6)
+                ax.plot(site_df['Date'], y_pred, label=f"Trendline (slope: {model.coef_[0]:.2f})", color='red')
+                ax.set_title(f"{param} Trend at Site {site_id}")
+                ax.set_xlabel("Date")
+                ax.set_ylabel(param)
+                ax.grid(True)
+                ax.legend()
+                st.pyplot(fig)
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+with adv_tabs[12]:
+    st.subheader("Principal Component Analysis (PCA)")
+    if len(selected_parameters) < 2:
+        st.info("Please select at least two parameters for PCA.")
+    else:
+        pca_df = analysis_df[['Site Name'] + selected_parameters].dropna()
+        if len(pca_df) >= 10:
+            X = pca_df[selected_parameters]
+            X_scaled = StandardScaler().fit_transform(X)
+            pca = PCA(n_components=2)
+            components = pca.fit_transform(X_scaled)
+            pca_result = pd.DataFrame(components, columns=['PC1', 'PC2'])
+            pca_result['Site Name'] = pca_df['Site Name'].values
+
+            fig, ax = plt.subplots(figsize=(8, 5))
+            sns.scatterplot(data=pca_result, x='PC1', y='PC2', hue='Site Name', ax=ax)
+            ax.set_title("PCA Scatter Plot")
+            ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)")
+            ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)")
+            ax.grid(True)
+            st.pyplot(fig)
+
+            st.markdown("**Explained Variance Ratio:**")
+            st.write(pd.DataFrame({
+                'Principal Component': [f'PC{i+1}' for i in range(len(pca.explained_variance_ratio_))],
+                'Variance Explained': pca.explained_variance_ratio_.round(3)
+            }))
+        else:
+            st.warning("Not enough data for PCA analysis.")       
+from scipy.cluster.hierarchy import linkage, dendrogram
+
+with adv_tabs[13]:
+    st.subheader("Hierarchical Clustering – Dendrogram")
+    if len(selected_parameters) < 2:
+        st.info("Please select at least two parameters.")
+    else:
+        hc_df = analysis_df.groupby('Site Name')[selected_parameters].mean().dropna()
+        if len(hc_df) >= 2:
+            linked = linkage(hc_df, method='ward')
+            fig, ax = plt.subplots(figsize=(10, 5))
+            dendrogram(linked, labels=hc_df.index.tolist(), ax=ax)
+            ax.set_title("Hierarchical Clustering of Sites")
+            ax.set_ylabel("Distance")
+            st.pyplot(fig)
+        else:
+            st.warning("Not enough data or sites for clustering.")
+
+with adv_tabs[14]:
+    st.subheader("Radar Plot for Site Comparison")
+    if len(selected_parameters) < 3:
+        st.info("Please select at least three parameters for meaningful radar plot.")
+    else:
+        radar_df = (
+            analysis_df
+            .groupby("Site Name")[selected_parameters]
+            .mean()
+            .dropna()
+        )
+
+        # Normalize to [0, 1]
+        radar_df = (radar_df - radar_df.min()) / (radar_df.max() - radar_df.min())
+
+        categories = selected_parameters
+        num_vars = len(categories)
+
+        angles = [n / float(num_vars) * 2 * pi for n in range(num_vars)]
+        angles += angles[:1]  # Complete the loop
+
+        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+
+        for site in radar_df.index:
+            values = radar_df.loc[site].tolist()
+            values += values[:1]
+            ax.plot(angles, values, label=site)
+            ax.fill(angles, values, alpha=0.1)
+
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(categories, fontsize=10)
+        ax.set_yticklabels([])
+        ax.set_title("Radar Plot of Site-Averaged Parameters", size=14)
+        ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+        st.pyplot(fig)
+from statsmodels.graphics.tsaplots import plot_acf
+
+with adv_tabs[15]:
+    st.subheader("Autocorrelation Function (ACF) Plot")
+    if selected_parameters:
+        for param in selected_parameters:
+            st.markdown(f"**{param}**")
+            for site_id in selected_sites:
+                site_data = analysis_df[analysis_df['Site ID'] == site_id][['Date', param]].dropna().sort_values('Date')
+                if len(site_data) > 20:
+                    fig, ax = plt.subplots(figsize=(8, 4))
+                    plot_acf(site_data[param], lags=20, ax=ax, title=f"{param} - ACF (Site ID: {site_id})")
+                    st.pyplot(fig)
+                else:
+                    st.info(f"Not enough data for ACF plot at Site ID {site_id}")
+    else:
+        st.warning("Please select at least one parameter.")        
