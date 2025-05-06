@@ -121,9 +121,17 @@ if selected_parameters:
 
         with tabs[2]:
             st.subheader(f"{param} - Annual Averages")
-            annual_avg = analysis_df.groupby([analysis_df['Date'].dt.year, 'Site Name'])[param].mean().reset_index()
+            annual_avg = (
+                analysis_df.copy()
+                .assign(Year=analysis_df['Date'].dt.year)
+                .groupby(['Year', 'Site Name'])[param]
+                .mean()
+                .reset_index()
+                .pivot(index='Year', columns='Site Name', values=param)
+                .round(2)
+            )
             fig, ax = plt.subplots(figsize=(10, 4))
-            sns.barplot(data=annual_avg, x='Date', y=param, hue='Site Name', ax=ax)
+            sns.barplot(data=annual_avg.reset_index().melt(id_vars='Year'), x='Year', y='value', hue='Site Name', ax=ax)
             ax.set_title(f"{param} - Annual Average Comparison")
             ax.set_xlabel("Year")
             ax.set_ylabel(param)
@@ -163,8 +171,15 @@ if selected_parameters:
                 st.markdown(f"**Parameter:** {param}")
                 summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
                 monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
-                annual_avg = analysis_df.groupby([analysis_df['Date'].dt.year, 'Site Name'])[param].mean().pivot_table(index='Date', columns='Site Name').round(2)
-
+                annual_avg = (
+                    analysis_df.copy()
+                    .assign(Year=analysis_df['Date'].dt.year)
+                    .groupby(['Year', 'Site Name'])[param]
+                    .mean()
+                    .reset_index()
+                    .pivot(index='Year', columns='Site Name', values=param)
+                    .round(2)
+                )
                 st.download_button(f"Download {param} - Summary Statistics", summary.to_csv().encode('utf-8'), file_name=f"{param}_summary.csv")
                 st.download_button(f"Download {param} - Monthly Averages", monthly_avg.to_csv().encode('utf-8'), file_name=f"{param}_monthly_avg.csv")
                 st.download_button(f"Download {param} - Annual Averages", annual_avg.to_csv().encode('utf-8'), file_name=f"{param}_annual_avg.csv")
@@ -175,7 +190,15 @@ if selected_parameters:
                 for param in selected_parameters:
                     summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
                     monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
-                    annual_avg = analysis_df.groupby([analysis_df['Date'].dt.year, 'Site Name'])[param].mean().pivot_table(index='Date', columns='Site Name').round(2)
+                    annual_avg = (
+                        analysis_df.copy()
+                        .assign(Year=analysis_df['Date'].dt.year)
+                        .groupby(['Year', 'Site Name'])[param]
+                        .mean()
+                        .reset_index()
+                        .pivot(index='Year', columns='Site Name', values=param)
+                        .round(2)
+                    )
                     zf.writestr(f"{param}_summary.csv", summary.to_csv())
                     zf.writestr(f"{param}_monthly_avg.csv", monthly_avg.to_csv())
                     zf.writestr(f"{param}_annual_avg.csv", annual_avg.to_csv())
