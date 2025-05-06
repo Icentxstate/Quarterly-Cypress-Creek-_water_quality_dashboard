@@ -96,13 +96,13 @@ with col2:
             st.pyplot(fig)
 
 # --- Statistical Analysis Tabs ---
-st.markdown("## \ud83d\udcca Statistical Analysis")
+st.markdown("## Statistical Analysis")
 tabs = st.tabs([
-    "\ud83d\udccc Summary Statistics",
-    "\ud83d\udcc6 Monthly Averages",
-    "\ud83d\udccb Annual Averages",
-    "\ud83d\udcc5 Export Data",
-    "\ud83d\udcc8 Correlation Matrix"
+    "Summary Statistics",
+    "Monthly Averages",
+    "Annual Averages",
+    "Export Data",
+    "Correlation Matrix"
 ])
 
 analysis_df = df[df['Site ID'].isin(selected_sites)]
@@ -133,19 +133,19 @@ if selected_parameters:
         with tabs[3]:
             st.subheader("Download Processed Data")
             csv_summary = summary.to_csv().encode('utf-8')
-            st.download_button("\ud83d\udcc4 Download Summary Statistics (CSV)", csv_summary, file_name=f"{param}_summary.csv")
+            st.download_button("Download Summary Statistics (CSV)", csv_summary, file_name=f"{param}_summary.csv")
             csv_monthly = monthly_avg.to_csv().encode('utf-8')
-            st.download_button("\ud83d\udcc6 Download Monthly Averages (CSV)", csv_monthly, file_name=f"{param}_monthly_avg.csv")
+            st.download_button("Download Monthly Averages (CSV)", csv_monthly, file_name=f"{param}_monthly_avg.csv")
             annual_avg_zip = annual_avg.pivot(index='Date', columns='Site Name', values=param).round(2)
             csv_annual = annual_avg_zip.to_csv().encode('utf-8')
-            st.download_button("\ud83d\udccb Download Annual Averages (CSV)", csv_annual, file_name=f"{param}_annual_avg.csv")
+            st.download_button("Download Annual Averages (CSV)", csv_annual, file_name=f"{param}_annual_avg.csv")
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                 zf.writestr(f"{param}_summary.csv", summary.to_csv())
                 zf.writestr(f"{param}_monthly_avg.csv", monthly_avg.to_csv())
                 zf.writestr(f"{param}_annual_avg.csv", annual_avg_zip.to_csv())
             zip_buffer.seek(0)
-            st.download_button("\ud83d\udcc2 Download All as ZIP", data=zip_buffer, file_name=f"{param}_analysis_outputs.zip", mime="application/zip")
+            st.download_button("Download All as ZIP", data=zip_buffer, file_name=f"{param}_analysis_outputs.zip", mime="application/zip")
 
     with tabs[4]:
         st.subheader("Correlation Matrix of Selected Parameters")
@@ -168,7 +168,7 @@ if selected_parameters:
             corr_pairs.columns = ['Parameter 1', 'Parameter 2', 'Correlation']
             corr_pairs['Abs Correlation'] = corr_pairs['Correlation'].abs()
             top_corr = corr_pairs.sort_values(by='Abs Correlation', ascending=False).head(5)
-            st.markdown("### \ud83d\udd1d Top 5 Correlated Parameter Pairs")
+            st.markdown("Top 5 Correlated Parameter Pairs")
             st.dataframe(top_corr[['Parameter 1', 'Parameter 2', 'Correlation']].style
                          .applymap(lambda v: 'color: red; font-weight: bold' if abs(v) >= 0.8 else ''))
 else:
