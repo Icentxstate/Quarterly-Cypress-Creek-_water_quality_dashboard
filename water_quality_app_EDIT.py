@@ -327,7 +327,7 @@ with adv_tabs[5]:
         heat_df = analysis_df.copy()
         heat_df['MonthYear'] = heat_df['Date'].dt.to_period('M').dt.to_timestamp()
         pivot = heat_df.pivot_table(index='MonthYear', columns='Site Name', values=param, aggfunc='mean')
-        pivot.index = pivot.index.strftime('%Y-%m')  # نمایش سال-ماه در محور
+        pivot.index = pivot.index.strftime('%b %Y')
         fig, ax = plt.subplots(figsize=(12, 6))
         sns.heatmap(pivot.T, cmap='YlGnBu', cbar_kws={'label': param})
         ax.set_title(f"Heatmap of {param} by Site and Month")
