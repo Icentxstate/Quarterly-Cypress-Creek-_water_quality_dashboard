@@ -260,10 +260,15 @@ with adv_tabs[2]:
     if "Flow (CFS)" in analysis_df.columns:
         for param in selected_parameters:
             if param != "Flow (CFS)":
-                fig, ax = plt.subplots(figsize=(6, 4))
-                sns.scatterplot(data=analysis_df, x="Flow (CFS)", y=param, hue="Site Name", ax=ax)
-                ax.set_title(f"Flow vs {param}")
-                st.pyplot(fig)
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.scatterplot(data=analysis_df, x="Flow (CFS)", y=param, hue="Site Name", ax=ax)
+ax.set_title(f"Flow vs {param}")
+ax.set_xlabel("Flow (CFS)")
+ax.set_ylabel(param)
+ax.tick_params(axis='x', rotation=45)  # چرخش برچسب‌های محور x
+ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:,.0f}'))  # قالب عدد صحیح بدون اعشار
+ax.grid(True)
+st.pyplot(fig)
     else:
         st.info("'Flow (CFS)' column not found.")
 
