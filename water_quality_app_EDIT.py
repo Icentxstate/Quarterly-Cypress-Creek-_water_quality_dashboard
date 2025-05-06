@@ -258,10 +258,10 @@ df['Season'] = df['Month'].apply(lambda m: "Winter" if m in [12, 1, 2] else
 st.markdown("## Advanced Analysis")
 
 adv_tabs = st.tabs([
-    "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter", 
-    "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap", 
-    "Boxplot by Site", "Normality Test", "Seasonal Decomposition", 
-    "Non-linear Correlation"
+    "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter",
+    "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
+    "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
+    "Non-linear Correlation", "Rolling Mean & Variance"
 ])
 
 # --- Seasonal Means ---
@@ -453,3 +453,28 @@ with adv_tabs[9]:
                 st.pyplot(fig)
             except Exception as e:
                 st.warning(f"Could not calculate {method} correlation: {e}")
+with adv_tabs[10]:
+    st.subheader("Rolling Mean and Variance")
+    window_size = st.slider("Select Rolling Window Size (months):", min_value=3, max_value=24, value=6)
+    
+    for param in selected_parameters:
+        st.markdown(f"### {param}")
+        for site_id in selected_sites:
+            site_data = analysis_df[analysis_df['Site ID'] == site_id].copy()
+            site_data = site_data.sort_values('Date')
+            site_data = site_data[['Date', param]].dropna()
+            site_data = site_data.set_index('Date').resample('M').mean().interpolate()
+
+            rolling_mean = site_data[param].rolling(window=window_size).mean()
+            rolling_std = site_data[param].rolling(window=window_size).std()
+
+            fig, ax = plt.subplots(figsize=(10, 4))
+            ax.plot(site_data.index, site_data[param], label="Original", alpha=0.4)
+            ax.plot(rolling_mean, label="Rolling Mean", color='blue')
+            ax.plot(rolling_std, label="Rolling Std Dev", color='red')
+            ax.set_title(f"{param} - Site {site_id}")
+            ax.set_xlabel("Date")
+            ax.set_ylabel(param)
+            ax.grid(True)
+            ax.legend()
+            st.pyplot(fig)                
