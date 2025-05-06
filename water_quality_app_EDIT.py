@@ -259,8 +259,9 @@ st.markdown("## Advanced Analysis")
 
 adv_tabs = st.tabs([
     "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter", 
-    "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
-    "Boxplot by Site", "Normality Test"
+    "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap", 
+    "Boxplot by Site", "Normality Test", "Seasonal Decomposition", 
+    "Non-linear Correlation"
 ])
 
 # --- Seasonal Means ---
@@ -409,3 +410,46 @@ with adv_tabs[7]:
             st.dataframe(styled_df)
         else:
             st.info(f"No valid data for {param}.")
+from statsmodels.tsa.seasonal import seasonal_decompose
+
+with adv_tabs[8]:
+    st.subheader("Seasonal-Trend Decomposition")
+    for param in selected_parameters:
+        st.markdown(f"### {param}")
+        for site in analysis_df['Site Name'].unique():
+            site_data = analysis_df[analysis_df['Site Name'] == site][['MonthYear', param]].dropna()
+            if len(site_data) >= 24:  # نیاز به حداقل داده برای تجزیه فصلی
+                ts = site_data.set_index('MonthYear').resample('M').mean()[param]
+                ts = ts.interpolate()  # پر کردن مقادیر گمشده
+                try:
+                    decomposition = seasonal_decompose(ts, model='additive', period=12)
+                    fig, axs = plt.subplots(4, 1, figsize=(10, 6), sharex=True)
+                    decomposition.observed.plot(ax=axs[0], title='Observed')
+                    decomposition.trend.plot(ax=axs[1], title='Trend')
+                    decomposition.seasonal.plot(ax=axs[2], title='Seasonal')
+                    decomposition.resid.plot(ax=axs[3], title='Residual')
+                    axs[3].set_xlabel("Date")
+                    fig.suptitle(f"{param} – Decomposition for {site}", fontsize=14)
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                except Exception as e:
+                    st.warning(f"Could not decompose {param} at {site}: {e}")
+            else:
+                st.info(f"Not enough data for {param} at {site} (min 24 monthly points).") 
+
+with adv_tabs[9]:
+    st.subheader("Spearman & Kendall Correlation Matrix")
+    if len(selected_parameters) < 2:
+        st.info("Please select at least two parameters.")
+    else:
+        for method in ['spearman', 'kendall']:
+            st.markdown(f"### {method.title()} Correlation")
+            try:
+                corr_df = analysis_df[selected_parameters].corr(method=method).round(2)
+                fig, ax = plt.subplots(figsize=(8, 6))
+                sns.heatmap(corr_df, annot=True, fmt=".2f", cmap="coolwarm", center=0,
+                            linewidths=0.5, square=True, cbar_kws={"shrink": .8})
+                ax.set_title(f"{method.title()} Correlation Matrix")
+                st.pyplot(fig)
+            except Exception as e:
+                st.warning(f"Could not calculate {method} correlation: {e}")
