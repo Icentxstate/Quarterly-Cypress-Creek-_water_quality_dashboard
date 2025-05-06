@@ -114,11 +114,10 @@ analysis_df['Season'] = analysis_df['Month'].apply(lambda m: "Winter" if m in [1
 analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp()
 if selected_parameters:
     for param in selected_parameters:
-        with tabs[0]:
-            st.subheader(f"{param} - Summary Statistics")
+        with tabs[2]:
+            st.subheader(f"{param} – Annual Averages")
             summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
             st.dataframe(summary)
-
         with tabs[1]:
             st.subheader(f"{param} - Monthly Averages (Across Years)")
 # تعریف لیست نام ماه‌ها برای نمایش زیبا
