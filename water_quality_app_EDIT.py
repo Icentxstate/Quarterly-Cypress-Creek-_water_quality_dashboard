@@ -101,8 +101,8 @@ tabs = st.tabs([
     "Summary Statistics",
     "Monthly Averages",
     "Annual Averages",
-    "Export Data",
-    "Correlation Matrix"
+    "Correlation Matrix",
+    "Export Data"
 ])
 
 analysis_df = df[df['Site ID'].isin(selected_sites)]
@@ -130,24 +130,7 @@ if selected_parameters:
             ax.legend(title="Site")
             st.pyplot(fig)
 
-        with tabs[3]:
-            st.subheader("Download Processed Data")
-            csv_summary = summary.to_csv().encode('utf-8')
-            st.download_button("Download Summary Statistics (CSV)", csv_summary, file_name=f"{param}_summary.csv")
-            csv_monthly = monthly_avg.to_csv().encode('utf-8')
-            st.download_button("Download Monthly Averages (CSV)", csv_monthly, file_name=f"{param}_monthly_avg.csv")
-            annual_avg_zip = annual_avg.pivot(index='Date', columns='Site Name', values=param).round(2)
-            csv_annual = annual_avg_zip.to_csv().encode('utf-8')
-            st.download_button("Download Annual Averages (CSV)", csv_annual, file_name=f"{param}_annual_avg.csv")
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-                zf.writestr(f"{param}_summary.csv", summary.to_csv())
-                zf.writestr(f"{param}_monthly_avg.csv", monthly_avg.to_csv())
-                zf.writestr(f"{param}_annual_avg.csv", annual_avg_zip.to_csv())
-            zip_buffer.seek(0)
-            st.download_button("Download All as ZIP", data=zip_buffer, file_name=f"{param}_analysis_outputs.zip", mime="application/zip")
-
-    with tabs[4]:
+    with tabs[3]:
         st.subheader("Correlation Matrix of Selected Parameters")
         if len(selected_parameters) < 2:
             st.info("Please select at least two parameters to compute correlations.")
@@ -172,6 +155,35 @@ if selected_parameters:
             styled = top_corr[['Parameter 1', 'Parameter 2', 'Correlation']].style
             styled = styled.applymap(lambda v: 'color: red; font-weight: bold' if abs(v) >= 0.8 else '', subset=['Correlation'])
             st.dataframe(styled)
+
+    with tabs[4]:
+        st.subheader("Export Processed Data")
+        if selected_parameters:
+            for param in selected_parameters:
+                st.markdown(f"**Parameter:** {param}")
+                summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
+                monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
+                annual_avg = analysis_df.groupby([analysis_df['Date'].dt.year, 'Site Name'])[param].mean().pivot_table(index='Date', columns='Site Name').round(2)
+
+                st.download_button(f"Download {param} - Summary Statistics", summary.to_csv().encode('utf-8'), file_name=f"{param}_summary.csv")
+                st.download_button(f"Download {param} - Monthly Averages", monthly_avg.to_csv().encode('utf-8'), file_name=f"{param}_monthly_avg.csv")
+                st.download_button(f"Download {param} - Annual Averages", annual_avg.to_csv().encode('utf-8'), file_name=f"{param}_annual_avg.csv")
+
+            # Download all as ZIP
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                for param in selected_parameters:
+                    summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
+                    monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
+                    annual_avg = analysis_df.groupby([analysis_df['Date'].dt.year, 'Site Name'])[param].mean().pivot_table(index='Date', columns='Site Name').round(2)
+                    zf.writestr(f"{param}_summary.csv", summary.to_csv())
+                    zf.writestr(f"{param}_monthly_avg.csv", monthly_avg.to_csv())
+                    zf.writestr(f"{param}_annual_avg.csv", annual_avg.to_csv())
+                # Add raw filtered data
+                filtered = df[df['Site ID'].isin(selected_sites)]
+                zf.writestr("filtered_data.csv", filtered.to_csv(index=False))
+            zip_buffer.seek(0)
+            st.download_button("Download All Parameters as ZIP", data=zip_buffer, file_name="all_outputs.zip", mime="application/zip")
 else:
     st.warning("Please select at least one parameter to continue.")
 
