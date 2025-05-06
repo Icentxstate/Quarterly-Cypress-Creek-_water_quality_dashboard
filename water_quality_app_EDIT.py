@@ -301,8 +301,10 @@ with adv_tabs[2]:
                 ax.set_title(f"Flow vs {param}")
                 ax.set_xlabel("Flow (CFS)")
                 ax.set_ylabel(param)
-                ax.tick_params(axis='x', rotation=45)
-                ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:,.0f}'))
+                from matplotlib.ticker import MaxNLocator
+                ax.tick_params(axis='x', labelrotation=45)
+                ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))  # تعداد برچسب‌ها رو محدود کن
+                ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:,.0f}'))  # فرمت عددی
                 ax.grid(True)
                 st.pyplot(fig)
     else:
