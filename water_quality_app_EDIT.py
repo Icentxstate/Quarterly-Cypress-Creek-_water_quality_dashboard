@@ -8,6 +8,7 @@ import matplotlib.colors as mcolors
 import numpy as np
 import zipfile
 import io
+from matplotlib.ticker import FuncFormatter
 
 # --- Page Configuration ---
 st.set_page_config(layout="wide")
