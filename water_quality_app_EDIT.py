@@ -121,9 +121,32 @@ if selected_parameters:
 
         with tabs[1]:
             st.subheader(f"{param} - Monthly Averages (Across Years)")
-            monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
-            st.line_chart(monthly_avg)
+# تعریف لیست نام ماه‌ها برای نمایش زیبا
+month_names = {
+    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
+    5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
+    9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
+}
 
+# محاسبه میانگین ماهانه
+monthly_avg = (
+    analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param]
+    .mean()
+    .unstack()
+    .round(2)
+)
+
+# تبدیل index عددی به نام ماه
+monthly_avg.index = monthly_avg.index.map(month_names)
+
+# رسم نمودار میله‌ای
+fig, ax = plt.subplots(figsize=(10, 4))
+monthly_avg.plot(kind='bar', ax=ax)
+ax.set_title(f"{param} - Monthly Averages Across Years")
+ax.set_xlabel("Month")
+ax.set_ylabel(param)
+ax.grid(True)
+st.pyplot(fig)
         with tabs[2]:
             st.subheader(f"{param} - Annual Averages")
             annual_avg = (
