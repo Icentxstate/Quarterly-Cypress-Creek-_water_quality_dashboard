@@ -112,7 +112,9 @@ analysis_df['Season'] = analysis_df['Month'].apply(lambda m: "Winter" if m in [1
                                                    "Spring" if m in [3, 4, 5] else
                                                    "Summer" if m in [6, 7, 8] else "Fall")
 analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp()
-    with tabs[1]:  # Monthly Averages tab
+if selected_parameters:
+
+    with tabs[1]:  # ✅ فقط یک بار
         st.subheader("Monthly Averages (Across Years)")
         month_names = {
             1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
@@ -138,7 +140,7 @@ analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp
             ax.set_ylabel(f"{param}")
             ax.grid(True)
             ax.legend(title="Site")
-            st.pyplot(fig)
+            st.pyplot(fig)    
 # تبدیل index عددی به نام ماه
 monthly_avg.index = monthly_avg.index.map(month_names)
 
