@@ -623,14 +623,19 @@ with adv_tabs[16]:
         for site_id in selected_sites:
             site_df = analysis_df[analysis_df['Site ID'] == site_id]
             series = site_df[['Date', param]].dropna().sort_values('Date')
-            if len(series) > 10:
-                fig, ax = plt.subplots(figsize=(8, 4))
-                plot_pacf(series[param], ax=ax, lags=20, method='ywm')
-                site_name = site_df['Site Name'].iloc[0]
-                ax.set_title(f"{param} – PACF at {site_name}")
-                st.pyplot(fig)
+            values = series[param].values
+
+            if len(values) > 20 and np.std(values) > 0:
+                try:
+                    fig, ax = plt.subplots(figsize=(8, 4))
+                    plot_pacf(values, ax=ax, lags=20, method='ywm')
+                    site_name = site_df['Site Name'].iloc[0]
+                    ax.set_title(f"{param} – PACF at {site_name}")
+                    st.pyplot(fig)
+                except ValueError as e:
+                    st.warning(f"PACF error for {param} at Site {site_id}: {e}")
             else:
-                st.info(f"Not enough data points for {param} at Site {site_id}")
+                st.info(f"Not enough variability or data points for {param} at Site ID {site_id}")
 from prophet import Prophet
 
 with adv_tabs[17]:
