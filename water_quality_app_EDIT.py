@@ -320,13 +320,12 @@ with adv_tabs[5]:
     for param in selected_parameters:
         heat_df = analysis_df.copy()
         heat_df['MonthYear'] = heat_df['Date'].dt.to_period('M').dt.to_timestamp()
-pivot = heat_df.pivot_table(index='MonthYear', columns='Site Name', values=param, aggfunc='mean')
-pivot.index = pivot.index.strftime('%Y-%m')  # یا مثلاً '%b %Y' برای Jan 2023
-
-fig, ax = plt.subplots(figsize=(12, 6))
-sns.heatmap(pivot.T, cmap='YlGnBu', cbar_kws={'label': param})
-ax.set_title(f"Heatmap of {param} by Site and Month")
-ax.set_xlabel("Month-Year")
-st.pyplot(fig)
+        pivot = heat_df.pivot_table(index='MonthYear', columns='Site Name', values=param, aggfunc='mean')
+        pivot.index = pivot.index.strftime('%Y-%m')  # نمایش سال-ماه در محور
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sns.heatmap(pivot.T, cmap='YlGnBu', cbar_kws={'label': param})
+        ax.set_title(f"Heatmap of {param} by Site and Month")
+        ax.set_xlabel("Month-Year")
+        st.pyplot(fig)
 st.markdown("---")
 st.caption("Data Source: CRP Monitoring at Cypress Creek")
