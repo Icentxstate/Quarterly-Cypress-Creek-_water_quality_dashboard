@@ -169,8 +169,9 @@ if selected_parameters:
             corr_pairs['Abs Correlation'] = corr_pairs['Correlation'].abs()
             top_corr = corr_pairs.sort_values(by='Abs Correlation', ascending=False).head(5)
             st.markdown("Top 5 Correlated Parameter Pairs")
-            st.dataframe(top_corr[['Parameter 1', 'Parameter 2', 'Correlation']].style
-                         .applymap(lambda v: 'color: red; font-weight: bold' if abs(v) >= 0.8 else ''))
+            styled = top_corr[['Parameter 1', 'Parameter 2', 'Correlation']].style
+            styled = styled.applymap(lambda v: 'color: red; font-weight: bold' if abs(v) >= 0.8 else '', subset=['Correlation'])
+            st.dataframe(styled)
 else:
     st.warning("Please select at least one parameter to continue.")
 
