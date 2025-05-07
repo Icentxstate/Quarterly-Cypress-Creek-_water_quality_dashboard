@@ -81,13 +81,13 @@ st.subheader("Enhanced Multi-Layered Site Map with Shapefiles")
 
 # Paths to shapefiles
 shapefile_paths = {
-    'Minor Aquifers': '/mnt/data/shapefiles/Minor_Aquifers.shp',
-    'Major Aquifers': '/mnt/data/shapefiles/NEW_major_aquifers_dd.shp',
-    'Major River Basins': '/mnt/data/shapefiles/TWDB_MRBs_2014.shp',
-    'Precipitation': '/mnt/data/shapefiles/TX_Precip_1981_2010_NRCS.shp',
-    'Regional Flood Planning': '/mnt/data/shapefiles/Regional_Flood_Planning_Groups.shp',
-    'RWPA': '/mnt/data/shapefiles/TWDB_RWPAs_2014.shp',
-    'RA_SLD': '/mnt/data/shapefiles/RA_SLD.shp'
+    'Minor Aquifers': 'Minor_Aquifers.shp',
+    'Major Aquifers': 'NEW_major_aquifers_dd.shp',
+    'Major River Basins': 'TWDB_MRBs_2014.shp',
+    'Precipitation': 'TX_Precip_1981_2010_NRCS.shp',
+    'Regional Flood Planning': 'Regional_Flood_Planning_Groups.shp',
+    'RWPA': 'TWDB_RWPAs_2014.shp',
+    'RA_SLD': 'RA_SLD.shp'
 }
 
 # Initialize the map at an average location
