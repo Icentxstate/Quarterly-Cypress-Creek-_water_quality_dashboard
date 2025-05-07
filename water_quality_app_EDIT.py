@@ -86,12 +86,41 @@ avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty
 m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, control_scale=True, width='100%', height='100%')
 
 # --- Base Layers (Multiple Base Maps) ---
-folium.TileLayer('OpenStreetMap', name='Street Map').add_to(m)
-folium.TileLayer('Stamen Terrain', name='Terrain Map').add_to(m)
-folium.TileLayer('Stamen Toner', name='Black & White').add_to(m)
-folium.TileLayer('Stamen Watercolor', name='Watercolor Map').add_to(m)
-folium.TileLayer('CartoDB positron', name='Light Map').add_to(m)
-folium.TileLayer('CartoDB dark_matter', name='Dark Map').add_to(m)
+folium.TileLayer(
+    'OpenStreetMap', 
+    name='Street Map', 
+    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+).add_to(m)
+
+folium.TileLayer(
+    'Stamen Terrain', 
+    name='Terrain Map',
+    attr='Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
+).add_to(m)
+
+folium.TileLayer(
+    'Stamen Toner', 
+    name='Black & White',
+    attr='Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
+).add_to(m)
+
+folium.TileLayer(
+    'Stamen Watercolor', 
+    name='Watercolor Map',
+    attr='Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
+).add_to(m)
+
+folium.TileLayer(
+    'CartoDB positron', 
+    name='Light Map',
+    attr='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+).add_to(m)
+
+folium.TileLayer(
+    'CartoDB dark_matter', 
+    name='Dark Map',
+    attr='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+).add_to(m)
 
 # --- Custom Vector Layer (Monitoring Sites) ---
 site_layer = folium.FeatureGroup(name="Monitoring Sites").add_to(m)
@@ -107,15 +136,11 @@ for _, row in selected_locations.iterrows():
         icon=folium.Icon(color='red', icon='info-sign')
     ).add_to(site_layer)
 
-# --- Additional Layer: Heatmap Example (for parameter visualization) ---
-from folium.plugins import HeatMap
+# --- Layer Control ---
+folium.LayerControl(collapsed=False).add_to(m)
 
-heat_data = [
-    [row['Latitude'], row['Longitude'], 1] for _, row in selected_locations.iterrows()
-]
-heat_layer = folium.FeatureGroup(name="Heatmap").add_to(m)
-HeatMap(heat_data, radius=15, gradient={0.4: 'blue', 0.65: 'lime', 1: 'red'}).add_to(heat_layer)
-
+# Display the enhanced map
+st_folium(m, width=800, height=600)
 # --- Layer Control ---
 folium.LayerControl(collapsed=False).add_to(m)
 
