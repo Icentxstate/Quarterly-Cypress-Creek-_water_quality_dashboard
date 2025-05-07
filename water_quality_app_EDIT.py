@@ -188,35 +188,72 @@ if selected_analysis == "Annual Averages":
             
 if selected_analysis == "Correlation Matrix":
     st.subheader("Correlation Matrix of Selected Parameters")
-        if len(selected_parameters) < 2:
-            st.info("Please select at least two parameters to compute correlations.")
-        else:
-            corr_df = analysis_df[selected_parameters].dropna().corr(method='pearson').round(2)
-            fig, ax = plt.subplots(figsize=(8, 6))
-            cmap = sns.diverging_palette(220, 20, as_cmap=True)
-            sns.heatmap(corr_df, annot=True, fmt=".2f", cmap=cmap, center=0, square=True,
-                        linewidths=0.5, cbar_kws={"shrink": .8}, annot_kws={"size": 10})
-            for i in range(len(corr_df)):
-                for j in range(len(corr_df.columns)):
-                    value = corr_df.iloc[i, j]
-                    if i != j and abs(value) >= 0.8:
-                        ax.text(j + 0.5, i + 0.5, f"{value:.2f}", color='red', ha='center', va='center', fontweight='bold')
-            st.pyplot(fig)
+    
+    if len(selected_parameters) < 2:
+        st.info("Please select at least two parameters to compute correlations.")
+    else:
+        corr_df = analysis_df[selected_parameters].dropna().corr(method='pearson').round(2)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        cmap = sns.diverging_palette(220, 20, as_cmap=True)
+        sns.heatmap(corr_df, annot=True, fmt=".2f", cmap=cmap, center=0, square=True,
+                    linewidths=0.5, cbar_kws={"shrink": .8}, annot_kws={"size": 10})
+        
+        for i in range(len(corr_df)):
+            for j in range(len(corr_df.columns)):
+                value = corr_df.iloc[i, j]
+                if i != j and abs(value) >= 0.8:
+                    ax.text(j + 0.5, i + 0.5, f"{value:.2f}", color='red', ha='center', va='center', fontweight='bold')
+        
+        st.pyplot(fig)
 
-            corr_pairs = corr_df.where(~np.tril(np.ones(corr_df.shape)).astype(bool)).stack().reset_index()
-            corr_pairs.columns = ['Parameter 1', 'Parameter 2', 'Correlation']
-            corr_pairs['Abs Correlation'] = corr_pairs['Correlation'].abs()
-            top_corr = corr_pairs.sort_values(by='Abs Correlation', ascending=False).head(5)
-            st.markdown("Top 5 Correlated Parameter Pairs")
-            styled = top_corr[['Parameter 1', 'Parameter 2', 'Correlation']].style
-            styled = styled.applymap(lambda v: 'color: red; font-weight: bold' if abs(v) >= 0.8 else '', subset=['Correlation'])
-            st.dataframe(styled)
+        # Display Top 5 Correlated Pairs
+        corr_pairs = corr_df.where(~np.tril(np.ones(corr_df.shape)).astype(bool)).stack().reset_index()
+        corr_pairs.columns = ['Parameter 1', 'Parameter 2', 'Correlation']
+        corr_pairs['Abs Correlation'] = corr_pairs['Correlation'].abs()
+        top_corr = corr_pairs.sort_values(by='Abs Correlation', ascending=False).head(5)
+        
+        st.markdown("### Top 5 Correlated Parameter Pairs")
+        st.dataframe(top_corr[['Parameter 1', 'Parameter 2', 'Correlation']])
 
 if selected_analysis == "Export Data":
     st.subheader("Export Processed Data")
-        if selected_parameters:
+    
+    if selected_parameters:
+        for param in selected_parameters:
+            st.markdown(f"**Parameter:** {param}")
+            summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
+            monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
+            annual_avg = (
+                analysis_df.copy()
+                .assign(Year=analysis_df['Date'].dt.year)
+                .groupby(['Year', 'Site Name'])[param]
+                .mean()
+                .reset_index()
+                .pivot(index='Year', columns='Site Name', values=param)
+                .round(2)
+            )
+            
+            # Display Download Buttons for Each Parameter
+            st.download_button(
+                f"Download {param} - Summary Statistics",
+                summary.to_csv().encode('utf-8'),
+                file_name=f"{param}_summary.csv"
+            )
+            st.download_button(
+                f"Download {param} - Monthly Averages",
+                monthly_avg.to_csv().encode('utf-8'),
+                file_name=f"{param}_monthly_avg.csv"
+            )
+            st.download_button(
+                f"Download {param} - Annual Averages",
+                annual_avg.to_csv().encode('utf-8'),
+                file_name=f"{param}_annual_avg.csv"
+            )
+
+        # Download All as ZIP
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             for param in selected_parameters:
-                st.markdown(f"**Parameter:** {param}")
                 summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
                 monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
                 annual_avg = (
@@ -228,35 +265,25 @@ if selected_analysis == "Export Data":
                     .pivot(index='Year', columns='Site Name', values=param)
                     .round(2)
                 )
-                st.download_button(f"Download {param} - Summary Statistics", summary.to_csv().encode('utf-8'), file_name=f"{param}_summary.csv")
-                st.download_button(f"Download {param} - Monthly Averages", monthly_avg.to_csv().encode('utf-8'), file_name=f"{param}_monthly_avg.csv")
-                st.download_button(f"Download {param} - Annual Averages", annual_avg.to_csv().encode('utf-8'), file_name=f"{param}_annual_avg.csv")
+                # Write each CSV to ZIP
+                zf.writestr(f"{param}_summary.csv", summary.to_csv(index=True))
+                zf.writestr(f"{param}_monthly_avg.csv", monthly_avg.to_csv(index=True))
+                zf.writestr(f"{param}_annual_avg.csv", annual_avg.to_csv(index=True))
+                
+            # Add raw filtered data
+            filtered = df[df['Site ID'].isin(selected_sites)]
+            zf.writestr("filtered_data.csv", filtered.to_csv(index=False))
+        
+        zip_buffer.seek(0)
+        st.download_button(
+            "Download All Parameters as ZIP",
+            data=zip_buffer,
+            file_name="all_outputs.zip",
+            mime="application/zip"
+        )
+    else:
+        st.warning("Please select at least one parameter to continue.")
 
-            # Download all as ZIP
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-                for param in selected_parameters:
-                    summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std']).round(2)
-                    monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
-                    annual_avg = (
-                        analysis_df.copy()
-                        .assign(Year=analysis_df['Date'].dt.year)
-                        .groupby(['Year', 'Site Name'])[param]
-                        .mean()
-                        .reset_index()
-                        .pivot(index='Year', columns='Site Name', values=param)
-                        .round(2)
-                    )
-                    zf.writestr(f"{param}_summary.csv", summary.to_csv())
-                    zf.writestr(f"{param}_monthly_avg.csv", monthly_avg.to_csv())
-                    zf.writestr(f"{param}_annual_avg.csv", annual_avg.to_csv())
-                # Add raw filtered data
-                filtered = df[df['Site ID'].isin(selected_sites)]
-                zf.writestr("filtered_data.csv", filtered.to_csv(index=False))
-            zip_buffer.seek(0)
-            st.download_button("Download All Parameters as ZIP", data=zip_buffer, file_name="all_outputs.zip", mime="application/zip")
-else:
-    st.warning("Please select at least one parameter to continue.")
 # --- Add Season Column ---
 df['Month'] = df['Date'].dt.month
 df['Season'] = df['Month'].apply(lambda m: "Winter" if m in [12, 1, 2] else
