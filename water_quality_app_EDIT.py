@@ -26,6 +26,13 @@ site_options = df[['Site ID', 'Site Name']].drop_duplicates()
 site_options['Site Display'] = site_options['Site ID'].astype(str) + " - " + site_options['Site Name']
 site_dict = dict(zip(site_options['Site Display'], site_options['Site ID']))
 
+selected_sites_display = st.sidebar.multiselect(
+    "Select Site(s):", 
+    site_dict.keys(), 
+    default=list(site_dict.keys())[:2]
+)
+selected_sites = [site_dict[label] for label in selected_sites_display]
+
 # --- Define Numeric Columns and Valid Defaults ---
 numeric_columns = df.select_dtypes(include='number').columns.tolist()
 default_params = ['TDS', 'Nitrate (\u00b5g/L)']
