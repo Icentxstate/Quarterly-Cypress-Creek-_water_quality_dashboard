@@ -75,21 +75,44 @@ site_colors = dict(zip(selected_sites, color_palette))
 # --- Main Content (Right Side for Graphs and Outputs) ---
 st.title("Water Quality Dashboard")
 
-# --- Site Map Section ---
-st.subheader("Site Map")
-avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
-avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
+# --- Site Map Section (Enhanced) ---
+st.subheader("Site Map (Interactive)")
 
-m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
-for _, row in selected_locations.iterrows():
-    color = mcolors.to_hex(site_colors.get(row['Site ID'], (0, 0, 1)))  # Default to blue if not in site_colors
-    folium.Marker(
-        location=[row['Latitude'], row['Longitude']],
-        popup=f"{row['Site ID']}: {row['Description']}",
-        tooltip=row['Description'],
-        icon=folium.Icon(color='blue', icon_color=color)
-    ).add_to(m)
-st_folium(m, width=350, height=500)
+# Adjusted map size to match the graph area
+m = folium.Map(location=[locations['Latitude'].mean(), locations['Longitude'].mean()], zoom_start=12, width='100%', height='500px')
+
+# Add all site markers with detailed popups
+for _, row in locations.iterrows():
+    site_data = df[df['Site ID'] == row['Site ID']]
+    if not site_data.empty:
+        # Calculate summary statistics for selected parameters
+        summary_info = []
+        for param in selected_parameters:
+            if param in site_data.columns:
+                mean_value = site_data[param].mean()
+                summary_info.append(f"{param}: {mean_value:.2f}")
+
+        start_date = site_data['Date'].min().strftime('%Y-%m-%d') if not site_data['Date'].isna().all() else "N/A"
+        end_date = site_data['Date'].max().strftime('%Y-%m-%d') if not site_data['Date'].isna().all() else "N/A"
+
+        popup_info = f"""
+        <b>{row['Description']}</b><br>
+        Site ID: {row['Site ID']}<br>
+        Latitude: {row['Latitude']}<br>
+        Longitude: {row['Longitude']}<br>
+        Data Range: {start_date} - {end_date}<br>
+        {"<br>".join(summary_info) if summary_info else "No Selected Parameters Data"}
+        """
+
+        folium.Marker(
+            location=[row['Latitude'], row['Longitude']],
+            popup=popup_info,
+            tooltip=row['Description'],
+            icon=folium.Icon(color='blue')
+        ).add_to(m)
+
+# Display the map in a larger view
+st_folium(m, width=800, height=500)
 
 # --- Time Series Plots Section ---
 st.header("Time Series Plots")
