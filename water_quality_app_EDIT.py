@@ -10,7 +10,6 @@ import zipfile
 import io
 import math
 from matplotlib.ticker import FuncFormatter
-import geopandas as gpd
 
 # --- Page Configuration ---
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -77,37 +76,50 @@ site_colors = dict(zip(selected_sites, color_palette))
 st.title("Water Quality Dashboard")
 
 # --- Site Map Section ---
-st.subheader("Enhanced Multi-Layered Site Map with Shapefiles")
+st.subheader("Enhanced Site Map")
 
-# Paths to shapefiles
-shapefile_paths = {
-    'Minor Aquifers': 'Minor_Aquifers.shp',
-    'Major Aquifers': 'NEW_major_aquifers_dd.shp',
-    'Major River Basins': 'TWDB_MRBs_2014.shp',
-    'Precipitation': 'TX_Precip_1981_2010_NRCS.shp',
-    'Regional Flood Planning': 'Regional_Flood_Planning_Groups.shp',
-    'RWPA': 'TWDB_RWPAs_2014.shp',
-    'RA_SLD': 'RA_SLD.shp'
-}
+# Calculate summary statistics for each selected site
+site_summaries = {}
+for site_id in selected_sites:
+    site_data = df[df['Site ID'] == site_id]
+    if not site_data.empty:
+        site_summaries[site_id] = {
+            "Mean Values": site_data[selected_parameters].mean().round(2).to_dict(),
+            "Start Date": site_data['Date'].min().strftime('%Y-%m-%d'),
+            "End Date": site_data['Date'].max().strftime('%Y-%m-%d')
+        }
 
-# Initialize the map at an average location
-m = folium.Map(location=[30.034408, -98.126321], zoom_start=7, control_scale=True)
+avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
+avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
 
-# Add each shapefile as a layer
-for name, path in shapefile_paths.items():
-    gdf = gpd.read_file(path)
-    geo_json = folium.GeoJson(
-        gdf,
-        name=name,
-        tooltip=folium.GeoJsonTooltip(fields=gdf.columns.tolist(), aliases=gdf.columns.tolist())
-    )
-    geo_json.add_to(m)
+# Create an enhanced map with 3D markers
+m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
 
-# Add Layer Control for interactive switching
-folium.LayerControl(collapsed=False).add_to(m)
+for _, row in selected_locations.iterrows():
+    site_id = row['Site ID']
+    summary = site_summaries.get(site_id, {})
+    summary_text = f"<b>Site ID:</b> {site_id}<br>"
+    summary_text += f"<b>Description:</b> {row['Description']}<br>"
+    
+    if summary:
+        summary_text += f"<b>Start Date:</b> {summary['Start Date']}<br>"
+        summary_text += f"<b>End Date:</b> {summary['End Date']}<br>"
+        summary_text += "<b>Parameter Means:</b><br>"
+        for param, value in summary.get("Mean Values", {}).items():
+            summary_text += f"{param}: {value}<br>"
+    else:
+        summary_text += "No data available."
 
-# Display the enhanced map
-st_folium(m, width=800, height=600)
+    # Add a 3D-style marker with popup
+    folium.Marker(
+        location=[row['Latitude'], row['Longitude']],
+        popup=folium.Popup(summary_text, max_width=300),
+        tooltip=row['Description'],
+        icon=folium.Icon(color='red', icon='info-sign')
+    ).add_to(m)
+
+# Display the enhanced map with a larger size
+st_folium(m, width=700, height=600)
 
 # --- Time Series Plots Section ---
 st.header("Time Series Plots")
