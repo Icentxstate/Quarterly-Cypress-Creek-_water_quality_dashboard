@@ -29,7 +29,6 @@ site_dict = dict(zip(site_options['Site Display'], site_options['Site ID']))
 selected_parameters = st.sidebar.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
 chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
 
-
 numeric_columns = df.select_dtypes(include='number').columns.tolist()
 default_params = ['TDS', 'Nitrate (\u00b5g/L)']
 valid_defaults = [p for p in default_params if p in numeric_columns]
@@ -73,7 +72,6 @@ st.subheader("Site Map")
             icon=folium.Icon(color='blue', icon_color=color)
         ).add_to(m)
     st_folium(m, width=350, height=500)
-
 
 st.header("Time Series Plots")
     plot_df = df[df['Site ID'].isin(selected_sites)]
@@ -261,7 +259,6 @@ adv_analysis_options = [
     "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting"
 ]
 selected_adv_analysis = st.sidebar.radio("Select Advanced Analysis:", adv_analysis_options)
-
 # --- Seasonal Means ---
 if selected_adv_analysis == "Seasonal Means":
     st.subheader("Seasonal Averages")
@@ -274,7 +271,6 @@ if selected_adv_analysis == "Seasonal Means":
         ax.set_ylabel(param)
         ax.set_title(f"Seasonal Mean of {param}")
         st.pyplot(fig)
-
 # --- Mann-Kendall Trend Test ---
 import pymannkendall as mk
 if selected_adv_analysis == "Mann-Kendall Trend":
@@ -290,7 +286,6 @@ if selected_adv_analysis == "Mann-Kendall Trend":
         if trend_results:
             trend_df = pd.DataFrame(trend_results, columns=["Site ID", "Trend", "P-value", "Z-score"])
             st.dataframe(trend_df)
-
 # --- Flow vs Parameter ---
 if selected_adv_analysis == "Flow vs Parameter":
     st.subheader("Flow vs. Parameter")
@@ -310,7 +305,6 @@ if selected_adv_analysis == "Flow vs Parameter":
                 st.pyplot(fig)
     else:
         st.info("'Flow (CFS)' column not found.")
-
 # --- Water Quality Index (WQI) ---
 if selected_adv_analysis == "Water Quality Index":
     st.subheader("Water Quality Index (WQI)")
@@ -336,13 +330,11 @@ if selected_adv_analysis == "Water Quality Index":
         st.pyplot(fig)
     else:
         st.warning("No WQI parameters matched.")
-
 # --- KMeans Clustering ---
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 if selected_adv_analysis == "KMeans Clustering":
     st.subheader("KMeans Clustering")
-
     if len(selected_parameters) >= 2:
         cluster_df = analysis_df[selected_parameters].dropna()
         if len(cluster_df) > 10:
@@ -389,7 +381,6 @@ if selected_adv_analysis == "Boxplot by Site":
 st.markdown("---")
 st.caption("Data Source: CRP Monitoring at Cypress Creek")
 from scipy.stats import shapiro
-
 if selected_adv_analysis == "Normality Test":
     st.subheader("Shapiro-Wilk Normality Test (per Site)")
     for param in selected_parameters:
@@ -410,7 +401,6 @@ if selected_adv_analysis == "Normality Test":
         else:
             st.info(f"No valid data for {param}.")
 from statsmodels.tsa.seasonal import seasonal_decompose
-
 if selected_adv_analysis == "Seasonal Decomposition":
     st.subheader("Seasonal-Trend Decomposition")
     for param in selected_parameters:
@@ -455,7 +445,6 @@ if selected_adv_analysis == "Non-linear Correlation":
 if selected_adv_analysis == "Rolling Mean & Variance":
     st.subheader("Rolling Mean and Variance")
     window_size = st.slider("Select Rolling Window Size (months):", min_value=3, max_value=24, value=6)
-    
     for param in selected_parameters:
         st.markdown(f"### {param}")
         for site_id in selected_sites:
@@ -478,7 +467,6 @@ if selected_adv_analysis == "Rolling Mean & Variance":
             ax.legend()
             st.pyplot(fig)
 from sklearn.linear_model import LinearRegression
-
 if selected_adv_analysis == "Trendline Regression":
     st.subheader("Trendline Regression Analysis")
     for param in selected_parameters:
@@ -509,7 +497,6 @@ if selected_adv_analysis == "Trendline Regression":
                 st.pyplot(fig)
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-
 if selected_adv_analysis == "PCA Analysis":
     st.subheader("Principal Component Analysis (PCA)")
     if len(selected_parameters) < 2:
@@ -540,7 +527,6 @@ if selected_adv_analysis == "PCA Analysis":
         else:
             st.warning("Not enough data for PCA analysis.")       
 from scipy.cluster.hierarchy import linkage, dendrogram
-
 if selected_adv_analysis == "Hierarchical Clustering":
     st.subheader("Hierarchical Clustering – Dendrogram")
     if len(selected_parameters) < 2:
@@ -593,7 +579,6 @@ if selected_adv_analysis == "Radar Plot":
         ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
         st.pyplot(fig)
 from statsmodels.graphics.tsaplots import plot_acf
-
 if selected_adv_analysis == "Autocorrelation (ACF)":
     st.subheader("Autocorrelation Function (ACF) Plot")
     if selected_parameters:
@@ -634,7 +619,6 @@ if selected_adv_analysis == "Partial Autocorrelation (PACF)":
             else:
                 st.info(f"Not enough variability or data points for {param} at Site ID {site_id}")
 from prophet import Prophet
-
 if selected_adv_analysis == "Forecasting":
     st.subheader("Time Series Forecasting (Prophet)")
 
