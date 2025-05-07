@@ -13,6 +13,43 @@ from matplotlib.ticker import FuncFormatter
 
 # --- Page Configuration ---
 st.set_page_config(layout="wide")
+st.markdown(
+    """
+    <style>
+    .collapsible {
+        background-color: #4CAF50;
+        color: white;
+        cursor: pointer;
+        padding: 10px;
+        width: 100%;
+        text-align: left;
+        border: none;
+        outline: none;
+        font-size: 18px;
+    }
+    
+    .content {
+        display: none;
+        overflow: hidden;
+        background-color: #f1f1f1;
+        padding: 10px;
+        margin-top: 10px;
+    }
+    </style>
+    <script>
+    function toggleContent() {
+        var content = document.getElementById("collapsibleContent");
+        if (content.style.display === "block") {
+            content.style.display = "none";
+        } else {
+            content.style.display = "block";
+        }
+    }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # --- Load Data ---
 file_path = r"INPUT.CSV"
@@ -21,20 +58,26 @@ df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['YearMonth'] = df['Date'].dt.to_period('M').dt.to_timestamp()
 
 # --- Sidebar Selections ---
-st.sidebar.title("Site and Parameter Selection")
+st.markdown('<button class="collapsible" onclick="toggleContent()">🔧 Settings</button>', unsafe_allow_html=True)
+st.markdown('<div id="collapsibleContent" class="content">', unsafe_allow_html=True)
+
+# --- Sidebar Selections ---
+st.subheader("Site and Parameter Selection")
 site_options = df[['Site ID', 'Site Name']].drop_duplicates()
 site_options['Site Display'] = site_options['Site ID'].astype(str) + " - " + site_options['Site Name']
 site_dict = dict(zip(site_options['Site Display'], site_options['Site ID']))
 
-selected_sites_display = st.sidebar.multiselect("Select Site(s):", site_dict.keys(), default=list(site_dict.keys())[:2])
+selected_sites_display = st.multiselect("Select Site(s):", site_dict.keys(), default=list(site_dict.keys())[:2])
 selected_sites = [site_dict[label] for label in selected_sites_display]
 
 numeric_columns = df.select_dtypes(include='number').columns.tolist()
 default_params = ['TDS', 'Nitrate (\u00b5g/L)']
 valid_defaults = [p for p in default_params if p in numeric_columns]
 
-selected_parameters = st.sidebar.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
-chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
+selected_parameters = st.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
+chart_type = st.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # --- Static Site Location Data ---
 locations = pd.DataFrame({
@@ -56,46 +99,30 @@ selected_locations = locations[locations['Site ID'].isin(selected_sites)]
 color_palette = sns.color_palette("hsv", len(selected_sites))
 site_colors = dict(zip(selected_sites, color_palette))
 
-# --- Layout ---
-col1, col2 = st.columns([1, 3])
+# --- Main Layout (Full Width) ---
+st.header("Interactive Water Quality Dashboard")
+st.markdown("## Time Series Plots and Statistical Analysis")
 
-with col1:
-    st.subheader("Site Map")
-    avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
-    avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
-    m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
-    for _, row in selected_locations.iterrows():
-        color = mcolors.to_hex(site_colors[row['Site ID']])
-        folium.Marker(
-            location=[row['Latitude'], row['Longitude']],
-            popup=f"{row['Site ID']}: {row['Description']}",
-            tooltip=row['Description'],
-            icon=folium.Icon(color='blue', icon_color=color)
-        ).add_to(m)
-    st_folium(m, width=350, height=500)
+plot_df = df[df['Site ID'].isin(selected_sites)]
 
-with col2:
-    st.header("Time Series Plots")
-    plot_df = df[df['Site ID'].isin(selected_sites)]
-    if not selected_parameters:
-        st.warning("Please select at least one parameter.")
-    else:
-        for param in selected_parameters:
-            fig, ax = plt.subplots(figsize=(10, 4))
-            for site_id in selected_sites:
-                site_data = plot_df[plot_df['Site ID'] == site_id]
-                site_name = site_data['Site Name'].iloc[0]
-                color = site_colors[site_id]
-                if chart_type == "Scatter (Points)":
-                    ax.scatter(site_data['YearMonth'], site_data[param], label=site_name, color=color, s=30)
-                else:
-                    ax.plot(site_data['YearMonth'], site_data[param], label=site_name, color=color)
-            ax.set_title(f"{param} Over Time (Monthly)")
-            ax.set_xlabel("Year-Month")
-            ax.set_ylabel(param)
-            ax.legend(title='Site')
-            ax.grid(True)
-            st.pyplot(fig)
+if not selected_parameters:
+    st.warning("Please select at least one parameter.")
+else:
+    for param in selected_parameters:
+        fig, ax = plt.subplots(figsize=(10, 4))
+        for site_id in selected_sites:
+            site_data = plot_df[plot_df['Site ID'] == site_id]
+            site_name = site_data['Site Name'].iloc[0]
+            if chart_type == "Scatter (Points)":
+                ax.scatter(site_data['YearMonth'], site_data[param], label=site_name, s=30)
+            else:
+                ax.plot(site_data['YearMonth'], site_data[param], label=site_name)
+        ax.set_title(f"{param} Over Time (Monthly)")
+        ax.set_xlabel("Year-Month")
+        ax.set_ylabel(param)
+        ax.legend(title='Site')
+        ax.grid(True)
+        st.pyplot(fig)
 
 # --- Statistical Analysis Tabs ---
 st.markdown("## Statistical Analysis")
