@@ -125,14 +125,6 @@ else:
         st.pyplot(fig)
 
 # --- Statistical Analysis Tabs ---
-st.markdown("## Statistical Analysis")
-tabs = st.tabs([
-    "Summary Statistics",
-    "Monthly Averages",
-    "Annual Averages",
-    "Correlation Matrix",
-    "Export Data"
-])
 
 analysis_df = df[df['Site ID'].isin(selected_sites)].copy()
 analysis_df['Month'] = analysis_df['Date'].dt.month
@@ -283,16 +275,6 @@ df['Season'] = df['Month'].apply(lambda m: "Winter" if m in [12, 1, 2] else
                                              "Spring" if m in [3, 4, 5] else
                                              "Summer" if m in [6, 7, 8] else "Fall")
 
-st.markdown("## Advanced Analysis")
-
-adv_tabs = st.tabs([
-    "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter",
-    "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
-    "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
-    "Non-linear Correlation", "Rolling Mean & Variance", "Trendline Regression",
-    "PCA Analysis", "Hierarchical Clustering", "Radar Plot",
-    "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting"
-])
 
 # --- Seasonal Means ---
 with adv_tabs[0]:
