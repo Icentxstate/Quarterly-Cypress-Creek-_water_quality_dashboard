@@ -76,50 +76,51 @@ site_colors = dict(zip(selected_sites, color_palette))
 st.title("Water Quality Dashboard")
 
 # --- Site Map Section ---
-st.subheader("Enhanced Site Map")
-
-# Calculate summary statistics for each selected site
-site_summaries = {}
-for site_id in selected_sites:
-    site_data = df[df['Site ID'] == site_id]
-    if not site_data.empty:
-        site_summaries[site_id] = {
-            "Mean Values": site_data[selected_parameters].mean().round(2).to_dict(),
-            "Start Date": site_data['Date'].min().strftime('%Y-%m-%d'),
-            "End Date": site_data['Date'].max().strftime('%Y-%m-%d')
-        }
+# --- Site Map Section with Multiple Layers ---
+st.subheader("Enhanced Multi-Layered Site Map")
 
 avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
 avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
 
-# Create an enhanced map with 3D markers
-m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
+# Create the base map
+m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, control_scale=True, width='100%', height='100%')
+
+# --- Base Layers (Multiple Base Maps) ---
+folium.TileLayer('OpenStreetMap', name='Street Map').add_to(m)
+folium.TileLayer('Stamen Terrain', name='Terrain Map').add_to(m)
+folium.TileLayer('Stamen Toner', name='Black & White').add_to(m)
+folium.TileLayer('Stamen Watercolor', name='Watercolor Map').add_to(m)
+folium.TileLayer('CartoDB positron', name='Light Map').add_to(m)
+folium.TileLayer('CartoDB dark_matter', name='Dark Map').add_to(m)
+
+# --- Custom Vector Layer (Monitoring Sites) ---
+site_layer = folium.FeatureGroup(name="Monitoring Sites").add_to(m)
 
 for _, row in selected_locations.iterrows():
     site_id = row['Site ID']
-    summary = site_summaries.get(site_id, {})
-    summary_text = f"<b>Site ID:</b> {site_id}<br>"
-    summary_text += f"<b>Description:</b> {row['Description']}<br>"
+    site_name = row['Description']
     
-    if summary:
-        summary_text += f"<b>Start Date:</b> {summary['Start Date']}<br>"
-        summary_text += f"<b>End Date:</b> {summary['End Date']}<br>"
-        summary_text += "<b>Parameter Means:</b><br>"
-        for param, value in summary.get("Mean Values", {}).items():
-            summary_text += f"{param}: {value}<br>"
-    else:
-        summary_text += "No data available."
-
-    # Add a 3D-style marker with popup
     folium.Marker(
         location=[row['Latitude'], row['Longitude']],
-        popup=folium.Popup(summary_text, max_width=300),
-        tooltip=row['Description'],
+        popup=f"<b>{site_name}</b><br>Site ID: {site_id}",
+        tooltip=site_name,
         icon=folium.Icon(color='red', icon='info-sign')
-    ).add_to(m)
+    ).add_to(site_layer)
 
-# Display the enhanced map with a larger size
-st_folium(m, width=700, height=600)
+# --- Additional Layer: Heatmap Example (for parameter visualization) ---
+from folium.plugins import HeatMap
+
+heat_data = [
+    [row['Latitude'], row['Longitude'], 1] for _, row in selected_locations.iterrows()
+]
+heat_layer = folium.FeatureGroup(name="Heatmap").add_to(m)
+HeatMap(heat_data, radius=15, gradient={0.4: 'blue', 0.65: 'lime', 1: 'red'}).add_to(heat_layer)
+
+# --- Layer Control ---
+folium.LayerControl(collapsed=False).add_to(m)
+
+# Display the enhanced map
+st_folium(m, width=800, height=600)
 
 # --- Time Series Plots Section ---
 st.header("Time Series Plots")
