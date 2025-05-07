@@ -164,25 +164,27 @@ if selected_analysis == "Monthly Averages":
 
 if selected_analysis == "Annual Averages":
     st.subheader("Annual Averages")
-        for param in selected_parameters:
-            st.markdown(f"### {param}")
-            annual_avg = (
-                analysis_df.copy()
-                .assign(Year=analysis_df['Date'].dt.year)
-                .groupby(['Year', 'Site Name'])[param]
-                .mean()
-                .reset_index()
-                .pivot(index='Year', columns='Site Name', values=param)
-                .round(2)
-            )
-            fig, ax = plt.subplots(figsize=(10, 4))
-            sns.barplot(data=annual_avg.reset_index().melt(id_vars='Year'),
-                        x='Year', y='value', hue='Site Name', ax=ax)
-            ax.set_title(f"Annual Average of {param}")
-            ax.set_xlabel("Year")
-            ax.set_ylabel(param)
-            ax.legend(title="Site")
-            st.pyplot(fig)
+    
+    for param in selected_parameters:
+        st.markdown(f"### {param}")
+        annual_avg = (
+            analysis_df.copy()
+            .assign(Year=analysis_df['Date'].dt.year)
+            .groupby(['Year', 'Site Name'])[param]
+            .mean()
+            .reset_index()
+            .pivot(index='Year', columns='Site Name', values=param)
+            .round(2)
+        )
+        
+        fig, ax = plt.subplots(figsize=(10, 4))
+        sns.barplot(data=annual_avg.reset_index().melt(id_vars='Year'),
+                    x='Year', y='value', hue='Site Name', ax=ax)
+        ax.set_title(f"Annual Average of {param}")
+        ax.set_xlabel("Year")
+        ax.set_ylabel(param)
+        ax.legend(title="Site")
+        st.pyplot(fig)
             
 if selected_analysis == "Correlation Matrix":
     st.subheader("Correlation Matrix of Selected Parameters")
