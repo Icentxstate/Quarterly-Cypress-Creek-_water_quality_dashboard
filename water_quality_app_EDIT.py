@@ -77,7 +77,13 @@ site_colors = dict(zip(selected_sites, color_palette))
 # --- Main Content (Right Side for Graphs and Outputs) ---
 st.title("Water Quality Dashboard")
 
-# --- Site Map Section ---
+# --- Site Map Section with Advanced Layers ---
+st.subheader("Enhanced Google-Style Map")
+
+# Base coordinates for the map
+avg_lat = 30.034408
+avg_lon = -98.126321
+
 # --- Site Map Section with Multiple Layers ---
 st.subheader("Enhanced Multi-Layered Site Map")
 
