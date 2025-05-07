@@ -10,8 +10,6 @@ import zipfile
 import io
 import math
 from matplotlib.ticker import FuncFormatter
-from folium.plugins import HeatMap, MeasureControl, Fullscreen
-import streamlit as st
 
 # --- Page Configuration ---
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -77,107 +75,51 @@ site_colors = dict(zip(selected_sites, color_palette))
 # --- Main Content (Right Side for Graphs and Outputs) ---
 st.title("Water Quality Dashboard")
 
-# --- Site Map Section with Advanced Layers ---
-st.subheader("Enhanced Google-Style Map")
+# --- Site Map Section ---
+st.subheader("Enhanced Site Map")
 
-# Base coordinates for the map
-avg_lat = 30.034408
-avg_lon = -98.126321
-
-# --- Site Map Section with Multiple Layers ---
-st.subheader("Enhanced Multi-Layered Site Map")
+# Calculate summary statistics for each selected site
+site_summaries = {}
+for site_id in selected_sites:
+    site_data = df[df['Site ID'] == site_id]
+    if not site_data.empty:
+        site_summaries[site_id] = {
+            "Mean Values": site_data[selected_parameters].mean().round(2).to_dict(),
+            "Start Date": site_data['Date'].min().strftime('%Y-%m-%d'),
+            "End Date": site_data['Date'].max().strftime('%Y-%m-%d')
+        }
 
 avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
 avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
 
-# Create the base map
-m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, control_scale=True)
+# Create an enhanced map with 3D markers
+m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
 
-# --- Base Layers (Multiple Base Maps) ---
-folium.TileLayer(
-    'OpenStreetMap', 
-    name='Street Map', 
-    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-).add_to(m)
+for _, row in selected_locations.iterrows():
+    site_id = row['Site ID']
+    summary = site_summaries.get(site_id, {})
+    summary_text = f"<b>Site ID:</b> {site_id}<br>"
+    summary_text += f"<b>Description:</b> {row['Description']}<br>"
+    
+    if summary:
+        summary_text += f"<b>Start Date:</b> {summary['Start Date']}<br>"
+        summary_text += f"<b>End Date:</b> {summary['End Date']}<br>"
+        summary_text += "<b>Parameter Means:</b><br>"
+        for param, value in summary.get("Mean Values", {}).items():
+            summary_text += f"{param}: {value}<br>"
+    else:
+        summary_text += "No data available."
 
-folium.TileLayer(
-    'Stamen Terrain', 
-    name='Terrain Map',
-    attr='Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
-).add_to(m)
+    # Add a 3D-style marker with popup
+    folium.Marker(
+        location=[row['Latitude'], row['Longitude']],
+        popup=folium.Popup(summary_text, max_width=300),
+        tooltip=row['Description'],
+        icon=folium.Icon(color='red', icon='info-sign')
+    ).add_to(m)
 
-folium.TileLayer(
-    'Stamen Toner', 
-    name='Black & White',
-    attr='Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
-).add_to(m)
-
-folium.TileLayer(
-    'Stamen Watercolor', 
-    name='Watercolor Map',
-    attr='Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
-).add_to(m)
-
-folium.TileLayer(
-    'CartoDB positron', 
-    name='Light Map',
-    attr='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-).add_to(m)
-
-folium.TileLayer(
-    'CartoDB dark_matter', 
-    name='Dark Map',
-    attr='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-).add_to(m)
-
-# --- Advanced Overlay Layers ---
-# Traffic Layer (Simulated)
-traffic_layer = folium.FeatureGroup(name="Traffic (Simulated)", show=False).add_to(m)
-folium.CircleMarker(location=[avg_lat, avg_lon], radius=10, color='red', fill=True, fill_color='red').add_to(traffic_layer)
-
-# Biking Routes (Simulated)
-biking_layer = folium.FeatureGroup(name="Biking Routes (Simulated)", show=False).add_to(m)
-folium.PolyLine(
-    locations=[[avg_lat, avg_lon], [avg_lat + 0.01, avg_lon + 0.01]],
-    color="green",
-    weight=5,
-    opacity=0.7,
-    tooltip="Biking Route"
-).add_to(biking_layer)
-
-# Air Quality (Simulated)
-air_quality_layer = folium.FeatureGroup(name="Air Quality (Simulated)", show=False).add_to(m)
-folium.Marker(
-    location=[avg_lat + 0.02, avg_lon],
-    popup="Air Quality: Good",
-    icon=folium.Icon(color="blue", icon="cloud")
-).add_to(air_quality_layer)
-
-# Wildfire Layer (Simulated)
-wildfire_layer = folium.FeatureGroup(name="Wildfire (Simulated)", show=False).add_to(m)
-folium.CircleMarker(
-    location=[avg_lat - 0.02, avg_lon],
-    radius=15,
-    color='orange',
-    fill=True,
-    fill_color='orange',
-    tooltip="Active Wildfire"
-).add_to(wildfire_layer)
-
-# --- Map Tools ---
-# Measure Tool
-measure = MeasureControl(position='topright', primary_length_unit='kilometers')
-m.add_child(measure)
-
-# Fullscreen Control
-Fullscreen().add_to(m)
-
-# --- Layer Control (Interactive) ---
-folium.LayerControl(collapsed=False).add_to(m)
-
-# Display the enhanced map
-st_folium(m, width=800, height=600)
-
+# Display the enhanced map with a larger size
+st_folium(m, width=700, height=600)
 
 # --- Time Series Plots Section ---
 st.header("Time Series Plots")
