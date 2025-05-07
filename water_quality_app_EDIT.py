@@ -26,12 +26,17 @@ site_options = df[['Site ID', 'Site Name']].drop_duplicates()
 site_options['Site Display'] = site_options['Site ID'].astype(str) + " - " + site_options['Site Name']
 site_dict = dict(zip(site_options['Site Display'], site_options['Site ID']))
 
-selected_parameters = st.sidebar.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
-chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
-
+# --- Define Numeric Columns and Valid Defaults ---
 numeric_columns = df.select_dtypes(include='number').columns.tolist()
 default_params = ['TDS', 'Nitrate (\u00b5g/L)']
 valid_defaults = [p for p in default_params if p in numeric_columns]
+
+# --- Sidebar: Parameter Selection ---
+selected_parameters = st.sidebar.multiselect(
+    "Select Parameters (up to 10):", numeric_columns, default=valid_defaults
+)
+chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
+
 
 selected_parameters = st.sidebar.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
 chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
