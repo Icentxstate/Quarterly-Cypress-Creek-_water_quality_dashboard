@@ -146,6 +146,74 @@ else:
         ax.legend(title='Site')
         ax.grid(True)
         st.pyplot(fig)
+# --- Display Statistical and Advanced Analysis ---
+st.markdown("## Statistical and Advanced Analysis Results")
+
+# --- Display Statistical Analysis ---
+if "Summary Statistics" in stats_options:
+    st.subheader("Summary Statistics")
+    for param in selected_parameters:
+        st.markdown(f"### {param}")
+        summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std', 'min', 'max', 'count']).round(2)
+        st.dataframe(summary)
+
+if "Monthly Averages" in stats_options:
+    st.subheader("Monthly Averages")
+    for param in selected_parameters:
+        monthly_avg = analysis_df.groupby([analysis_df['Date'].dt.month, 'Site Name'])[param].mean().unstack().round(2)
+        st.dataframe(monthly_avg)
+
+if "Annual Averages" in stats_options:
+    st.subheader("Annual Averages")
+    for param in selected_parameters:
+        annual_avg = analysis_df.groupby([analysis_df['Date'].dt.year, 'Site Name'])[param].mean().unstack().round(2)
+        st.dataframe(annual_avg)
+
+if "Correlation Matrix" in stats_options:
+    st.subheader("Correlation Matrix")
+    corr_df = analysis_df[selected_parameters].corr().round(2)
+    st.dataframe(corr_df)
+
+if "Export Data" in stats_options:
+    st.subheader("Export Processed Data")
+    st.download_button("Download Processed Data", data=df.to_csv(index=False).encode('utf-8'), file_name="processed_data.csv")
+
+# --- Display Advanced Analysis ---
+if "Seasonal Means" in adv_options:
+    st.subheader("Seasonal Means")
+    for param in selected_parameters:
+        seasonal_avg = analysis_df.groupby(['Season', 'Site Name'])[param].mean().unstack()
+        st.dataframe(seasonal_avg)
+
+if "Mann-Kendall Trend" in adv_options:
+    st.subheader("Mann-Kendall Trend Test")
+    import pymannkendall as mk
+    for param in selected_parameters:
+        trend_results = [
+            (site_id, mk.original_test(analysis_df[analysis_df['Site ID'] == site_id][param].dropna()).trend)
+            for site_id in selected_sites
+        ]
+        st.dataframe(pd.DataFrame(trend_results, columns=["Site ID", "Trend"]))
+
+if "Water Quality Index" in adv_options:
+    st.subheader("Water Quality Index (WQI)")
+    param_weights = {
+        "TDS": 0.2,
+        "Nitrate (\u00b5g/L)": 0.2,
+        "DO": 0.2,
+        "pH": 0.2,
+        "Turbidity": 0.2
+    }
+    wqi_params = {p: w for p, w in param_weights.items() if p in selected_parameters}
+    if wqi_params:
+        st.write("Weights used:", wqi_params)
+        norm_df = analysis_df[selected_parameters].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+        weighted = sum(norm_df[p] * w for p, w in wqi_params.items())
+        analysis_df['WQI'] = weighted
+        st.dataframe(analysis_df[['Site Name', 'WQI']].groupby('Site Name').mean().round(2))
+    else:
+        st.warning("No WQI parameters matched.")
+      
 
 # --- Statistical Analysis Tabs ---
 
