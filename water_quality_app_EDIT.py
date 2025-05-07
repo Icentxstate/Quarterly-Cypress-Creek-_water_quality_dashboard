@@ -58,41 +58,50 @@ site_colors = dict(zip(selected_sites, color_palette))
 
 # --- Main Content (Right Side for Graphs and Outputs) ---
 st.title("Water Quality Dashboard")
-st.subheader("Site Map")
-    avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
-    avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
-    m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
-    for _, row in selected_locations.iterrows():
-        color = mcolors.to_hex(site_colors[row['Site ID']])
-        folium.Marker(
-            location=[row['Latitude'], row['Longitude']],
-            popup=f"{row['Site ID']}: {row['Description']}",
-            tooltip=row['Description'],
-            icon=folium.Icon(color='blue', icon_color=color)
-        ).add_to(m)
-    st_folium(m, width=350, height=500)
 
+# --- Site Map Section ---
+st.subheader("Site Map")
+avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
+avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
+
+m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
+for _, row in selected_locations.iterrows():
+    color = mcolors.to_hex(site_colors.get(row['Site ID'], (0, 0, 1)))  # Default to blue if not in site_colors
+    folium.Marker(
+        location=[row['Latitude'], row['Longitude']],
+        popup=f"{row['Site ID']}: {row['Description']}",
+        tooltip=row['Description'],
+        icon=folium.Icon(color='blue', icon_color=color)
+    ).add_to(m)
+st_folium(m, width=350, height=500)
+
+# --- Time Series Plots Section ---
 st.header("Time Series Plots")
-    plot_df = df[df['Site ID'].isin(selected_sites)]
-    if not selected_parameters:
-        st.warning("Please select at least one parameter.")
-    else:
-        for param in selected_parameters:
-            fig, ax = plt.subplots(figsize=(10, 4))
-            for site_id in selected_sites:
-                site_data = plot_df[plot_df['Site ID'] == site_id]
-                site_name = site_data['Site Name'].iloc[0]
-                color = site_colors[site_id]
-                if chart_type == "Scatter (Points)":
-                    ax.scatter(site_data['YearMonth'], site_data[param], label=site_name, color=color, s=30)
-                else:
-                    ax.plot(site_data['YearMonth'], site_data[param], label=site_name, color=color)
-            ax.set_title(f"{param} Over Time (Monthly)")
-            ax.set_xlabel("Year-Month")
-            ax.set_ylabel(param)
-            ax.legend(title='Site')
-            ax.grid(True)
-            st.pyplot(fig)
+plot_df = df[df['Site ID'].isin(selected_sites)]
+
+if not selected_parameters:
+    st.warning("Please select at least one parameter.")
+else:
+    for param in selected_parameters:
+        fig, ax = plt.subplots(figsize=(10, 4))
+        for site_id in selected_sites:
+            site_data = plot_df[plot_df['Site ID'] == site_id]
+            if site_data.empty:
+                continue  # Skip if no data for this site
+            site_name = site_data['Site Name'].iloc[0]
+            color = site_colors.get(site_id, 'blue')  # Default to blue if color not found
+            
+            if chart_type == "Scatter (Points)":
+                ax.scatter(site_data['YearMonth'], site_data[param], label=site_name, color=color, s=30)
+            else:
+                ax.plot(site_data['YearMonth'], site_data[param], label=site_name, color=color)
+        
+        ax.set_title(f"{param} Over Time (Monthly)")
+        ax.set_xlabel("Year-Month")
+        ax.set_ylabel(param)
+        ax.legend(title='Site')
+        ax.grid(True)
+        st.pyplot(fig)
 
 # --- Statistical Analysis Tabs ---
 st.sidebar.subheader("Statistical Analysis")
