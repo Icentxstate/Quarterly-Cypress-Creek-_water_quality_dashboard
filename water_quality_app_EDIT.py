@@ -154,8 +154,11 @@ if "Summary Statistics" in stats_options:
     st.subheader("Summary Statistics")
     for param in selected_parameters:
         st.markdown(f"### {param}")
-        summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std', 'min', 'max', 'count']).round(2)
-        st.dataframe(summary)
+        if param in analysis_df.columns:
+            summary = analysis_df.groupby('Site Name')[param].agg(['mean', 'median', 'std', 'min', 'max', 'count']).round(2)
+            st.dataframe(summary)
+        else:
+            st.warning(f"Parameter {param} not found in the data.")
 
 if "Monthly Averages" in stats_options:
     st.subheader("Monthly Averages")
