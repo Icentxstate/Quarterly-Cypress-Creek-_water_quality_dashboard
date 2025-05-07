@@ -12,7 +12,7 @@ import math
 from matplotlib.ticker import FuncFormatter
 
 # --- Page Configuration ---
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 # --- Load Data ---
 file_path = r"INPUT.CSV"
@@ -21,13 +21,14 @@ df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['YearMonth'] = df['Date'].dt.to_period('M').dt.to_timestamp()
 
 # --- Sidebar Selections ---
-st.sidebar.title("Site and Parameter Selection")
+st.sidebar.title("Control Panel")
 site_options = df[['Site ID', 'Site Name']].drop_duplicates()
 site_options['Site Display'] = site_options['Site ID'].astype(str) + " - " + site_options['Site Name']
 site_dict = dict(zip(site_options['Site Display'], site_options['Site ID']))
 
-selected_sites_display = st.sidebar.multiselect("Select Site(s):", site_dict.keys(), default=list(site_dict.keys())[:2])
-selected_sites = [site_dict[label] for label in selected_sites_display]
+selected_parameters = st.sidebar.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
+chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
+
 
 numeric_columns = df.select_dtypes(include='number').columns.tolist()
 default_params = ['TDS', 'Nitrate (\u00b5g/L)']
@@ -56,11 +57,10 @@ selected_locations = locations[locations['Site ID'].isin(selected_sites)]
 color_palette = sns.color_palette("hsv", len(selected_sites))
 site_colors = dict(zip(selected_sites, color_palette))
 
-# --- Layout ---
-col1, col2 = st.columns([1, 3])
+# --- Main Content (Right Side for Graphs and Outputs) ---
+st.title("Water Quality Dashboard")
 
-with col1:
-    st.subheader("Site Map")
+st.subheader("Site Map")
     avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
     avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
     m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
@@ -74,8 +74,8 @@ with col1:
         ).add_to(m)
     st_folium(m, width=350, height=500)
 
-with col2:
-    st.header("Time Series Plots")
+
+st.header("Time Series Plots")
     plot_df = df[df['Site ID'].isin(selected_sites)]
     if not selected_parameters:
         st.warning("Please select at least one parameter.")
@@ -98,14 +98,9 @@ with col2:
             st.pyplot(fig)
 
 # --- Statistical Analysis Tabs ---
-st.markdown("## Statistical Analysis")
-tabs = st.tabs([
-    "Summary Statistics",
-    "Monthly Averages",
-    "Annual Averages",
-    "Correlation Matrix",
-    "Export Data"
-])
+st.sidebar.subheader("Statistical Analysis")
+analysis_options = ["Summary Statistics", "Monthly Averages", "Annual Averages", "Correlation Matrix", "Export Data"]
+selected_analysis = st.sidebar.radio("Select Analysis:", analysis_options)
 
 analysis_df = df[df['Site ID'].isin(selected_sites)].copy()
 analysis_df['Month'] = analysis_df['Date'].dt.month
@@ -113,9 +108,8 @@ analysis_df['Season'] = analysis_df['Month'].apply(lambda m: "Winter" if m in [1
                                                    "Spring" if m in [3, 4, 5] else
                                                    "Summer" if m in [6, 7, 8] else "Fall")
 analysis_df['MonthYear'] = analysis_df['Date'].dt.to_period('M').dt.to_timestamp()
-if selected_parameters:
-    with tabs[0]:
-        st.subheader("Summary Statistics")
+if selected_analysis == "Summary Statistics":
+    st.subheader("Summary Statistics")
         for param in selected_parameters:
             st.markdown(f"### {param}")
             summary = (
@@ -129,8 +123,8 @@ if selected_parameters:
                 })
             )
             st.dataframe(summary)
-    with tabs[1]:
-        st.subheader("Monthly Averages (Across Years)")
+if selected_analysis == "Monthly Averages":
+    st.subheader("Monthly Averages (Across Years)")
         month_names = {
             1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
             5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
@@ -157,8 +151,8 @@ if selected_parameters:
             ax.legend(title="Site")
             st.pyplot(fig)
 
-    with tabs[2]:
-        st.subheader("Annual Averages")
+if selected_analysis == "Annual Averages":
+    st.subheader("Annual Averages")
         for param in selected_parameters:
             st.markdown(f"### {param}")
             annual_avg = (
@@ -179,8 +173,8 @@ if selected_parameters:
             ax.legend(title="Site")
             st.pyplot(fig)
             
-    with tabs[3]:
-        st.subheader("Correlation Matrix of Selected Parameters")
+if selected_analysis == "Correlation Matrix":
+    st.subheader("Correlation Matrix of Selected Parameters")
         if len(selected_parameters) < 2:
             st.info("Please select at least two parameters to compute correlations.")
         else:
@@ -205,8 +199,8 @@ if selected_parameters:
             styled = styled.applymap(lambda v: 'color: red; font-weight: bold' if abs(v) >= 0.8 else '', subset=['Correlation'])
             st.dataframe(styled)
 
-    with tabs[4]:
-        st.subheader("Export Processed Data")
+if selected_analysis == "Export Data":
+    st.subheader("Export Processed Data")
         if selected_parameters:
             for param in selected_parameters:
                 st.markdown(f"**Parameter:** {param}")
@@ -256,19 +250,20 @@ df['Season'] = df['Month'].apply(lambda m: "Winter" if m in [12, 1, 2] else
                                              "Spring" if m in [3, 4, 5] else
                                              "Summer" if m in [6, 7, 8] else "Fall")
 
-st.markdown("## Advanced Analysis")
-
-adv_tabs = st.tabs([
+# --- Advanced Analysis in Sidebar ---
+st.sidebar.subheader("Advanced Analysis")
+adv_analysis_options = [
     "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter",
     "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
     "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
     "Non-linear Correlation", "Rolling Mean & Variance", "Trendline Regression",
     "PCA Analysis", "Hierarchical Clustering", "Radar Plot",
     "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting"
-])
+]
+selected_adv_analysis = st.sidebar.radio("Select Advanced Analysis:", adv_analysis_options)
 
 # --- Seasonal Means ---
-with adv_tabs[0]:
+if selected_adv_analysis == "Seasonal Means":
     st.subheader("Seasonal Averages")
     for param in selected_parameters:
         seasonal_avg = analysis_df.groupby(['Season', 'Site Name'])[param].mean().unstack()
@@ -282,7 +277,7 @@ with adv_tabs[0]:
 
 # --- Mann-Kendall Trend Test ---
 import pymannkendall as mk
-with adv_tabs[1]:
+if selected_adv_analysis == "Mann-Kendall Trend":
     st.subheader("Mann-Kendall Trend Test")
     for param in selected_parameters:
         st.markdown(f"**Trend for {param}:**")
@@ -297,7 +292,7 @@ with adv_tabs[1]:
             st.dataframe(trend_df)
 
 # --- Flow vs Parameter ---
-with adv_tabs[2]:
+if selected_adv_analysis == "Flow vs Parameter":
     st.subheader("Flow vs. Parameter")
     if "Flow (CFS)" in analysis_df.columns:
         for param in selected_parameters:
@@ -317,7 +312,7 @@ with adv_tabs[2]:
         st.info("'Flow (CFS)' column not found.")
 
 # --- Water Quality Index (WQI) ---
-with adv_tabs[3]:
+if selected_adv_analysis == "Water Quality Index":
     st.subheader("Water Quality Index (WQI)")
     param_weights = {
         "TDS": 0.2,
@@ -345,8 +340,9 @@ with adv_tabs[3]:
 # --- KMeans Clustering ---
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-with adv_tabs[4]:
+if selected_adv_analysis == "KMeans Clustering":
     st.subheader("KMeans Clustering")
+
     if len(selected_parameters) >= 2:
         cluster_df = analysis_df[selected_parameters].dropna()
         if len(cluster_df) > 10:
@@ -364,7 +360,7 @@ with adv_tabs[4]:
         st.info("Please select at least two parameters.")
 
 # --- Time-Spatial Heatmap ---
-with adv_tabs[5]:
+if selected_adv_analysis == "Time-Spatial Heatmap":
     st.subheader("Time-Spatial Heatmap (Monthly Average)")
     for param in selected_parameters:
         heat_df = analysis_df.copy()
@@ -376,7 +372,7 @@ with adv_tabs[5]:
         ax.set_title(f"Heatmap of {param} by Site and Month")
         ax.set_xlabel("Month-Year")
         st.pyplot(fig)
-with adv_tabs[6]:
+if selected_adv_analysis == "Boxplot by Site":
     st.subheader("Boxplot of Parameters by Site")
     for param in selected_parameters:
         site_data = analysis_df[['Site Name', param]].dropna()
@@ -394,7 +390,7 @@ st.markdown("---")
 st.caption("Data Source: CRP Monitoring at Cypress Creek")
 from scipy.stats import shapiro
 
-with adv_tabs[7]:
+if selected_adv_analysis == "Normality Test":
     st.subheader("Shapiro-Wilk Normality Test (per Site)")
     for param in selected_parameters:
         st.markdown(f"### {param}")
@@ -415,7 +411,7 @@ with adv_tabs[7]:
             st.info(f"No valid data for {param}.")
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-with adv_tabs[8]:
+if selected_adv_analysis == "Seasonal Decomposition":
     st.subheader("Seasonal-Trend Decomposition")
     for param in selected_parameters:
         st.markdown(f"### {param}")
@@ -440,7 +436,7 @@ with adv_tabs[8]:
             else:
                 st.info(f"Not enough data for {param} at {site} (min 24 monthly points).") 
 
-with adv_tabs[9]:
+if selected_adv_analysis == "Non-linear Correlation":
     st.subheader("Spearman & Kendall Correlation Matrix")
     if len(selected_parameters) < 2:
         st.info("Please select at least two parameters.")
@@ -456,7 +452,7 @@ with adv_tabs[9]:
                 st.pyplot(fig)
             except Exception as e:
                 st.warning(f"Could not calculate {method} correlation: {e}")
-with adv_tabs[10]:
+if selected_adv_analysis == "Rolling Mean & Variance":
     st.subheader("Rolling Mean and Variance")
     window_size = st.slider("Select Rolling Window Size (months):", min_value=3, max_value=24, value=6)
     
@@ -483,7 +479,7 @@ with adv_tabs[10]:
             st.pyplot(fig)
 from sklearn.linear_model import LinearRegression
 
-with adv_tabs[11]:
+if selected_adv_analysis == "Trendline Regression":
     st.subheader("Trendline Regression Analysis")
     for param in selected_parameters:
         st.markdown(f"### {param}")
@@ -514,7 +510,7 @@ with adv_tabs[11]:
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-with adv_tabs[12]:
+if selected_adv_analysis == "PCA Analysis":
     st.subheader("Principal Component Analysis (PCA)")
     if len(selected_parameters) < 2:
         st.info("Please select at least two parameters for PCA.")
@@ -545,7 +541,7 @@ with adv_tabs[12]:
             st.warning("Not enough data for PCA analysis.")       
 from scipy.cluster.hierarchy import linkage, dendrogram
 
-with adv_tabs[13]:
+if selected_adv_analysis == "Hierarchical Clustering":
     st.subheader("Hierarchical Clustering – Dendrogram")
     if len(selected_parameters) < 2:
         st.info("Please select at least two parameters.")
@@ -561,7 +557,7 @@ with adv_tabs[13]:
         else:
             st.warning("Not enough data or sites for clustering.")
 
-with adv_tabs[14]:
+if selected_adv_analysis == "Radar Plot":
     st.subheader("Radar Plot for Site Comparison")
     if len(selected_parameters) < 3:
         st.info("Please select at least three parameters for meaningful radar plot.")
@@ -598,7 +594,7 @@ with adv_tabs[14]:
         st.pyplot(fig)
 from statsmodels.graphics.tsaplots import plot_acf
 
-with adv_tabs[15]:
+if selected_adv_analysis == "Autocorrelation (ACF)":
     st.subheader("Autocorrelation Function (ACF) Plot")
     if selected_parameters:
         for param in selected_parameters:
@@ -616,7 +612,7 @@ with adv_tabs[15]:
 # --- Partial Autocorrelation (PACF) ---
 from statsmodels.graphics.tsaplots import plot_pacf
 
-with adv_tabs[16]:
+if selected_adv_analysis == "Partial Autocorrelation (PACF)":
     st.subheader("Partial Autocorrelation (PACF)")
 
     for param in selected_parameters:
@@ -639,7 +635,7 @@ with adv_tabs[16]:
                 st.info(f"Not enough variability or data points for {param} at Site ID {site_id}")
 from prophet import Prophet
 
-with adv_tabs[17]:
+if selected_adv_analysis == "Forecasting":
     st.subheader("Time Series Forecasting (Prophet)")
 
     if selected_parameters:
