@@ -579,7 +579,7 @@ with adv_tabs[14]:
         categories = selected_parameters
         num_vars = len(categories)
 
-        angles = [n / float(num_vars) * 2 * pi for n in range(num_vars)]
+        angles = [n / float(num_vars) * 2 * math.pi for n in range(num_vars)]
         angles += angles[:1]  # Complete the loop
 
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
