@@ -135,31 +135,32 @@ if selected_analysis == "Summary Statistics":
         st.dataframe(summary)
 if selected_analysis == "Monthly Averages":
     st.subheader("Monthly Averages (Across Years)")
-        month_names = {
-            1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
-            5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
-            9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
-        }
+    
+    month_names = {
+        1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
+        5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
+        9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"
+    }
 
-        for param in selected_parameters:
-            st.markdown(f"### {param}")
-            monthly_avg = (
-                analysis_df
-                .groupby([analysis_df['Date'].dt.month, 'Site Name'])[param]
-                .mean()
-                .unstack()
-                .round(2)
-            )
-            monthly_avg.index = monthly_avg.index.map(month_names)
+    for param in selected_parameters:
+        st.markdown(f"### {param}")
+        monthly_avg = (
+            analysis_df
+            .groupby([analysis_df['Date'].dt.month, 'Site Name'])[param]
+            .mean()
+            .unstack()
+            .round(2)
+        )
+        monthly_avg.index = monthly_avg.index.map(month_names)
 
-            fig, ax = plt.subplots(figsize=(10, 4))
-            monthly_avg.plot(kind='bar', ax=ax)
-            ax.set_title(f"Monthly Averages of {param}")
-            ax.set_xlabel("Month")
-            ax.set_ylabel(param)
-            ax.grid(True)
-            ax.legend(title="Site")
-            st.pyplot(fig)
+        fig, ax = plt.subplots(figsize=(10, 4))
+        monthly_avg.plot(kind='bar', ax=ax)
+        ax.set_title(f"Monthly Averages of {param}")
+        ax.set_xlabel("Month")
+        ax.set_ylabel(param)
+        ax.grid(True)
+        ax.legend(title="Site")
+        st.pyplot(fig)
 
 if selected_analysis == "Annual Averages":
     st.subheader("Annual Averages")
