@@ -80,39 +80,44 @@ st.subheader("Site Map")
 avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
 avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
 
-m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='600px')
-
+m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
 for _, row in selected_locations.iterrows():
-    site_id = row['Site ID']
-    site_name = row['Description']
-    
-    # Filter data for the site
-    site_data = plot_df[plot_df['Site ID'] == site_id]
-    data_count = len(site_data)
-    available_params = site_data.columns[site_data.dtypes == 'float64'].tolist()
-    avg_values = site_data[available_params].mean().round(2).to_dict()
-    start_date = site_data['Date'].min().strftime('%Y-%m-%d') if not site_data.empty else "N/A"
-    end_date = site_data['Date'].max().strftime('%Y-%m-%d') if not site_data.empty else "N/A"
-    
-    # Create HTML popup content
-    popup_html = f"""
-    <b>Site Name:</b> {site_name}<br>
-    <b>Site ID:</b> {site_id}<br>
-    <b>Number of Data Points:</b> {data_count}<br>
-    <b>Available Parameters:</b> {', '.join(available_params)}<br>
-    <b>Average Values:</b><br>
-    {', '.join([f'{param}: {value}' for param, value in avg_values.items()])}<br>
-    <b>Period:</b> {start_date} to {end_date}
-    """
-    
+    color = mcolors.to_hex(site_colors.get(row['Site ID'], (0, 0, 1)))  # Default to blue if not in site_colors
     folium.Marker(
         location=[row['Latitude'], row['Longitude']],
-        popup=folium.Popup(popup_html, max_width=300),
-        tooltip=site_name,
-        icon=folium.Icon(color='blue')
+        popup=f"{row['Site ID']}: {row['Description']}",
+        tooltip=row['Description'],
+        icon=folium.Icon(color='blue', icon_color=color)
     ).add_to(m)
+st_folium(m, width=350, height=500)
 
-st_folium(m, width=700, height=600)
+# --- Time Series Plots Section ---
+st.header("Time Series Plots")
+plot_df = df[df['Site ID'].isin(selected_sites)]
+
+if not selected_parameters:
+    st.warning("Please select at least one parameter.")
+else:
+    for param in selected_parameters:
+        fig, ax = plt.subplots(figsize=(10, 4))
+        for site_id in selected_sites:
+            site_data = plot_df[plot_df['Site ID'] == site_id]
+            if site_data.empty:
+                continue  # Skip if no data for this site
+            site_name = site_data['Site Name'].iloc[0]
+            color = site_colors.get(site_id, 'blue')  # Default to blue if color not found
+            
+            if chart_type == "Scatter (Points)":
+                ax.scatter(site_data['YearMonth'], site_data[param], label=site_name, color=color, s=30)
+            else:
+                ax.plot(site_data['YearMonth'], site_data[param], label=site_name, color=color)
+        
+        ax.set_title(f"{param} Over Time (Monthly)")
+        ax.set_xlabel("Year-Month")
+        ax.set_ylabel(param)
+        ax.legend(title='Site')
+        ax.grid(True)
+        st.pyplot(fig)
 
 # --- Statistical Analysis Tabs ---
 st.sidebar.subheader("Statistical Analysis")
