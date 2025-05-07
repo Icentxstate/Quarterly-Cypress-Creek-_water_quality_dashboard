@@ -83,7 +83,7 @@ avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty 
 avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
 
 # Create the base map
-m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, control_scale=True, width='100%', height='100%')
+m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, control_scale=True)
 
 # --- Base Layers (Multiple Base Maps) ---
 folium.TileLayer(
@@ -122,30 +122,54 @@ folium.TileLayer(
     attr='&copy; <a href="https://carto.com/attributions">CARTO</a>'
 ).add_to(m)
 
-# --- Custom Vector Layer (Monitoring Sites) ---
-site_layer = folium.FeatureGroup(name="Monitoring Sites").add_to(m)
+# --- Advanced Overlay Layers ---
+# Traffic Layer (Simulated)
+traffic_layer = folium.FeatureGroup(name="Traffic (Simulated)", show=False).add_to(m)
+folium.CircleMarker(location=[avg_lat, avg_lon], radius=10, color='red', fill=True, fill_color='red').add_to(traffic_layer)
 
-for _, row in selected_locations.iterrows():
-    site_id = row['Site ID']
-    site_name = row['Description']
-    
-    folium.Marker(
-        location=[row['Latitude'], row['Longitude']],
-        popup=f"<b>{site_name}</b><br>Site ID: {site_id}",
-        tooltip=site_name,
-        icon=folium.Icon(color='red', icon='info-sign')
-    ).add_to(site_layer)
+# Biking Routes (Simulated)
+biking_layer = folium.FeatureGroup(name="Biking Routes (Simulated)", show=False).add_to(m)
+folium.PolyLine(
+    locations=[[avg_lat, avg_lon], [avg_lat + 0.01, avg_lon + 0.01]],
+    color="green",
+    weight=5,
+    opacity=0.7,
+    tooltip="Biking Route"
+).add_to(biking_layer)
 
-# --- Layer Control ---
+# Air Quality (Simulated)
+air_quality_layer = folium.FeatureGroup(name="Air Quality (Simulated)", show=False).add_to(m)
+folium.Marker(
+    location=[avg_lat + 0.02, avg_lon],
+    popup="Air Quality: Good",
+    icon=folium.Icon(color="blue", icon="cloud")
+).add_to(air_quality_layer)
+
+# Wildfire Layer (Simulated)
+wildfire_layer = folium.FeatureGroup(name="Wildfire (Simulated)", show=False).add_to(m)
+folium.CircleMarker(
+    location=[avg_lat - 0.02, avg_lon],
+    radius=15,
+    color='orange',
+    fill=True,
+    fill_color='orange',
+    tooltip="Active Wildfire"
+).add_to(wildfire_layer)
+
+# --- Map Tools ---
+# Measure Tool
+measure = MeasureControl(position='topright', primary_length_unit='kilometers')
+m.add_child(measure)
+
+# Fullscreen Control
+Fullscreen().add_to(m)
+
+# --- Layer Control (Interactive) ---
 folium.LayerControl(collapsed=False).add_to(m)
 
 # Display the enhanced map
 st_folium(m, width=800, height=600)
-# --- Layer Control ---
-folium.LayerControl(collapsed=False).add_to(m)
 
-# Display the enhanced map
-st_folium(m, width=800, height=600)
 
 # --- Time Series Plots Section ---
 st.header("Time Series Plots")
