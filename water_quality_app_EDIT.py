@@ -8,6 +8,7 @@ import matplotlib.colors as mcolors
 import numpy as np
 import zipfile
 import io
+import math
 from matplotlib.ticker import FuncFormatter
 
 # --- Page Configuration ---
