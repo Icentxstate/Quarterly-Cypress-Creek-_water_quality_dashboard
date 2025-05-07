@@ -33,7 +33,7 @@ valid_defaults = [p for p in default_params if p in numeric_columns]
 
 # --- Sidebar: Parameter Selection ---
 selected_parameters = st.sidebar.multiselect(
-    "Select Parameters (up to 10):", numeric_columns, default=valid_defaults
+    "Select Water Quality Parameters (up to 10):", numeric_columns, default=valid_defaults, key="parameter_selection_1"
 )
 chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
 
