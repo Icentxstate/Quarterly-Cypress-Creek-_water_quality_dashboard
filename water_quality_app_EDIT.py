@@ -10,9 +10,6 @@ import zipfile
 import io
 import math
 from matplotlib.ticker import FuncFormatter
-import geopandas as gpd
-import folium
-from streamlit_folium import st_folium
 
 # --- Page Configuration ---
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -79,58 +76,6 @@ site_colors = dict(zip(selected_sites, color_palette))
 st.title("Water Quality Dashboard")
 
 # --- Site Map Section ---
-# --- Load Shapefile Layers ---
-@st.cache_data
-def load_shapefile(path):
-    return gpd.read_file(path)
-
-# Define paths to the shapefiles
-shapefile_paths = {
-    "Flood Planning Regions": "Regional_Flood_Planning_Groups.shp",
-    "Major Aquifers": "NEW_major_aquifers_dd.shp",
-    "TWDB Major River Basins": "TWDB_MRBs_2014.shp",
-    "TWDB Regional Water Planning Areas": "TWDB_RWPAs_2014.shp"
-}
-
-shapefiles = {name: load_shapefile(path) for name, path in shapefile_paths.items()}
-# --- Sidebar Selection for Shapefile Layers ---
-st.sidebar.subheader("Shapefile Layer Selection")
-selected_layers = st.sidebar.multiselect(
-    "Select Shapefile Layers to Display:", list(shapefiles.keys()), default=[]
-)
-
-# --- Map Creation with Shapefile Layers ---
-avg_lat = 30.0  # Center in Texas (adjust as needed)
-avg_lon = -99.0  # Center in Texas (adjust as needed)
-
-m = folium.Map(location=[avg_lat, avg_lon], zoom_start=7, width='100%', height='100%')
-
-# Add selected shapefiles to map
-for layer_name in selected_layers:
-    gdf = shapefiles[layer_name]
-    folium.GeoJson(
-        gdf,
-        name=layer_name,
-        style_function=lambda x: {
-            "fillColor": "blue",
-            "color": "blue",
-            "weight": 1,
-            "fillOpacity": 0.2,
-        }
-    ).add_to(m)
-
-# Add the existing site markers
-for _, row in selected_locations.iterrows():
-    folium.Marker(
-        location=[row['Latitude'], row['Longitude']],
-        popup=row['Description'],
-        tooltip=row['Description'],
-        icon=folium.Icon(color='red', icon='info-sign')
-    ).add_to(m)
-
-# Display the enhanced map with the selectable shapefile layers
-st_folium(m, width=700, height=600)
-
 st.subheader("Enhanced Site Map")
 
 # Calculate summary statistics for each selected site
