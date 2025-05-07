@@ -62,20 +62,43 @@ st.markdown('<button class="collapsible" onclick="toggleContent()">🔧 Settings
 st.markdown('<div id="collapsibleContent" class="content">', unsafe_allow_html=True)
 
 # --- Sidebar Selections ---
-st.subheader("Site and Parameter Selection")
+st.sidebar.title("Site and Parameter Selection")
 site_options = df[['Site ID', 'Site Name']].drop_duplicates()
 site_options['Site Display'] = site_options['Site ID'].astype(str) + " - " + site_options['Site Name']
 site_dict = dict(zip(site_options['Site Display'], site_options['Site ID']))
 
-selected_sites_display = st.multiselect("Select Site(s):", site_dict.keys(), default=list(site_dict.keys())[:2])
+selected_sites_display = st.sidebar.multiselect("Select Site(s):", site_dict.keys(), default=list(site_dict.keys())[:2])
 selected_sites = [site_dict[label] for label in selected_sites_display]
 
 numeric_columns = df.select_dtypes(include='number').columns.tolist()
 default_params = ['TDS', 'Nitrate (\u00b5g/L)']
 valid_defaults = [p for p in default_params if p in numeric_columns]
 
-selected_parameters = st.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
-chart_type = st.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
+selected_parameters = st.sidebar.multiselect("Select Parameters (up to 10):", numeric_columns, default=valid_defaults)
+chart_type = st.sidebar.radio("Select Chart Type:", ["Scatter (Points)", "Line (Connected)"], index=0)
+
+# --- Collapsible Sections ---
+with st.sidebar.expander("Statistical Analysis", expanded=False):
+    st.write("Select Statistical Analysis")
+    stats_options = st.multiselect(
+        "Choose Statistical Analysis:",
+        ["Summary Statistics", "Monthly Averages", "Annual Averages", "Correlation Matrix", "Export Data"]
+    )
+
+with st.sidebar.expander("Advanced Analysis", expanded=False):
+    st.write("Select Advanced Analysis")
+    adv_options = st.multiselect(
+        "Choose Advanced Analysis:",
+        [
+            "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter",
+            "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
+            "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
+            "Non-linear Correlation", "Rolling Mean & Variance", "Trendline Regression",
+            "PCA Analysis", "Hierarchical Clustering", "Radar Plot",
+            "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting"
+        ]
+    )
+
 
 st.markdown('</div>', unsafe_allow_html=True)
 
