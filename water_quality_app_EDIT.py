@@ -58,7 +58,6 @@ site_colors = dict(zip(selected_sites, color_palette))
 
 # --- Main Content (Right Side for Graphs and Outputs) ---
 st.title("Water Quality Dashboard")
-
 st.subheader("Site Map")
     avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
     avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
