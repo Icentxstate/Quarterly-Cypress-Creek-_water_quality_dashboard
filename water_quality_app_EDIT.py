@@ -735,50 +735,83 @@ if selected_adv_analysis == "Forecasting":
 if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
     st.header("AI Analysis (XAI + Predictive Modeling)")
 
-if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
-    st.header("AI Analysis (XAI + Predictive Modeling)")
+    # --- انتخاب ورودی‌ها و خروجی ---
+    st.subheader("1. Model Configuration")
+    selected_inputs = st.multiselect("Select Input Parameters:", df.select_dtypes(include='number').columns)
+    target_parameter = st.selectbox("Select Target Parameter:", df.select_dtypes(include='number').columns)
+    model_type = st.selectbox("Select Model Type:", ["Linear Regression", "RandomForest", "XGBoost"])
+    
+    if st.button("Run Model Training"):
+        if not selected_inputs or not target_parameter:
+            st.warning("Please select at least one input parameter and one target parameter.")
+        else:
+            # آماده‌سازی داده‌ها با تاریخ مشترک
+            X = df[['Date'] + selected_inputs].dropna(subset=selected_inputs)
+            y = df[['Date', target_parameter]].dropna(subset=[target_parameter])
+
+            # پیدا کردن تاریخ‌های مشترک بین ورودی‌ها و خروجی
+            common_dates = set(X['Date']).intersection(set(y['Date']))
+            X = X[X['Date'].isin(common_dates)].set_index('Date').sort_index()
+            y = y[y['Date'].isin(common_dates)].set_index('Date').sort_index()
+
+            # اطمینان از طول برابر داده‌ها
+            if len(X) == len(y) and len(X) > 0:
+                y = y.loc[X.index]  # هماهنگی خروجی با ورودی
+
+                # انتخاب و آموزش مدل
+                if model_type == "Linear Regression":
+                    model = LinearRegression()
+                elif model_type == "RandomForest":
+                    model = RandomForestRegressor()
+                else:
+                    model = xgb.XGBRegressor(
+                        objective='reg:squarederror',
+                        use_label_encoder=False,
+                        eval_metric='rmse'
+                    )
+
+                model.fit(X, y[target_parameter])  # آموزش مدل
+
+                st.success(f"{model_type} model trained successfully with {len(selected_inputs)} input features.")
+                st.session_state['trained_model'] = model
+                st.session_state['X_train'] = X
+                st.session_state['y_train'] = y[target_parameter]
+                st.session_state['selected_inputs'] = selected_inputs
+                st.session_state['target_parameter'] = target_parameter
+            else:
+                st.warning("No common dates between input and target data.")
 
     # --- XAI (SHAP Analysis) ---
-    st.subheader("1. XAI (SHAP Analysis)")
-    xai_target = st.selectbox("Select Target for SHAP Analysis:", df.select_dtypes(include='number').columns)
-    
+    st.subheader("2. XAI (SHAP Analysis)")
     if st.button("Run SHAP Analysis"):
-        X = df.drop(columns=[xai_target, 'Date']).select_dtypes(include='number').dropna()
-        y = df[xai_target].dropna()
+        if 'trained_model' in st.session_state:
+            model = st.session_state['trained_model']
+            X = st.session_state['X_train']
 
-        model = xgb.XGBRegressor()
-        model.fit(X, y)
+            explainer = shap.Explainer(model, X)
+            shap_values = explainer(X)
 
-        explainer = shap.Explainer(model, X)
-        shap_values = explainer(X)
+            st.markdown("### SHAP Summary Plot")
+            shap.summary_plot(shap_values, X, show=False)
+            st.pyplot()
 
-        st.markdown("### SHAP Summary Plot")
-        shap.summary_plot(shap_values, X, show=False)
-        st.pyplot()
+            st.markdown("### SHAP Decision Plot")
+            shap.decision_plot(explainer.expected_value, shap_values.values, X.columns)
+        else:
+            st.warning("Please train the model first.")
 
     # --- Predictive Modeling ---
-    st.subheader("2. Predictive Modeling")
-    predict_target = st.selectbox("Select Target for Prediction:", df.select_dtypes(include='number').columns)
-    selected_inputs = st.multiselect("Select Input Parameters:", df.select_dtypes(include='number').columns)
-    model_type = st.selectbox("Select Model Type:", ["Linear Regression", "RandomForest", "XGBoost"])
-
+    st.subheader("3. Predictive Modeling")
     if st.button("Run Predictive Modeling"):
-        # پاکسازی داده ها
-        X = df[selected_inputs].dropna().select_dtypes(include='number')
-        y = df[predict_target].dropna()
-        
-        # اطمینان از اندازه یکسان داده ها
-        if len(X) == len(y):
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        if 'trained_model' in st.session_state:
+            model = st.session_state['trained_model']
+            X = st.session_state['X_train']
+            y = st.session_state['y_train']
 
-            if model_type == "Linear Regression":
-                model = LinearRegression()
-            elif model_type == "RandomForest":
-                model = RandomForestRegressor()
-            else:
-                model = xgb.XGBRegressor(use_label_encoder=False, eval_metric='rmse')
-            
-            model.fit(X_train, y_train)
+            # تقسیم داده‌ها به تست و ترین
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=False)
+
+            # پیش‌بینی
             y_pred = model.predict(X_test)
             rmse = mean_squared_error(y_test, y_pred, squared=False)
             r2 = r2_score(y_test, y_pred)
@@ -786,7 +819,7 @@ if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
             st.write(f"RMSE: {rmse:.4f}")
             st.write(f"R2 Score: {r2:.4f}")
 
-            # Visualization
+            # نمودار مقادیر واقعی در مقابل پیش‌بینی
             fig, ax = plt.subplots()
             ax.scatter(y_test, y_pred, alpha=0.6)
             ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
@@ -794,5 +827,6 @@ if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
             ax.set_ylabel("Predicted Values")
             st.pyplot(fig)
         else:
-            st.warning("Data sizes do not match. Please ensure the selected input and target parameters have the same length.")
+            st.warning("Please train the model first.")
+
 
