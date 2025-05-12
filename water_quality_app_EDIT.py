@@ -746,40 +746,54 @@ if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
             st.warning("Please select at least one input parameter and one target parameter.")
         else:
             # آماده‌سازی داده‌ها با تاریخ مشترک
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
             X = df[['Date'] + selected_inputs].dropna(subset=selected_inputs)
             y = df[['Date', target_parameter]].dropna(subset=[target_parameter])
 
+            # نمایش تاریخ‌های موجود
+            st.write("### Available Dates in Inputs:")
+            st.write(X['Date'].drop_duplicates().sort_values().reset_index(drop=True))
+
+            st.write("### Available Dates in Target:")
+            st.write(y['Date'].drop_duplicates().sort_values().reset_index(drop=True))
+
             # پیدا کردن تاریخ‌های مشترک بین ورودی‌ها و خروجی
             common_dates = set(X['Date']).intersection(set(y['Date']))
-            X = X[X['Date'].isin(common_dates)].set_index('Date').sort_index()
-            y = y[y['Date'].isin(common_dates)].set_index('Date').sort_index()
+            st.write(f"### Common Dates Found: {len(common_dates)}")
 
-            # اطمینان از طول برابر داده‌ها
-            if len(X) == len(y) and len(X) > 0:
-                y = y.loc[X.index]  # هماهنگی خروجی با ورودی
-
-                # انتخاب و آموزش مدل
-                if model_type == "Linear Regression":
-                    model = LinearRegression()
-                elif model_type == "RandomForest":
-                    model = RandomForestRegressor()
-                else:
-                    model = xgb.XGBRegressor(
-                        objective='reg:squarederror',
-                        use_label_encoder=False,
-                        eval_metric='rmse'
-                    )
-
-                model.fit(X, y[target_parameter])  # آموزش مدل
-
-                st.success(f"{model_type} model trained successfully with {len(selected_inputs)} input features.")
-                st.session_state['trained_model'] = model
-                st.session_state['X_train'] = X
-                st.session_state['y_train'] = y[target_parameter]
-                st.session_state['selected_inputs'] = selected_inputs
-                st.session_state['target_parameter'] = target_parameter
-            else:
+            if len(common_dates) == 0:
                 st.warning("No common dates between input and target data.")
+            else:
+                # فیلتر کردن داده‌ها براساس تاریخ‌های مشترک
+                X = X[X['Date'].isin(common_dates)].set_index('Date').sort_index()
+                y = y[y['Date'].isin(common_dates)].set_index('Date').sort_index()
+                
+                # اطمینان از طول برابر داده‌ها
+                if len(X) == len(y) and len(X) > 0:
+                    y = y.loc[X.index]  # هماهنگی خروجی با ورودی
+
+                    # انتخاب و آموزش مدل
+                    if model_type == "Linear Regression":
+                        model = LinearRegression()
+                    elif model_type == "RandomForest":
+                        model = RandomForestRegressor()
+                    else:
+                        model = xgb.XGBRegressor(
+                            objective='reg:squarederror',
+                            use_label_encoder=False,
+                            eval_metric='rmse'
+                        )
+
+                    model.fit(X, y[target_parameter])  # آموزش مدل
+
+                    st.success(f"{model_type} model trained successfully with {len(selected_inputs)} input features.")
+                    st.session_state['trained_model'] = model
+                    st.session_state['X_train'] = X
+                    st.session_state['y_train'] = y[target_parameter]
+                    st.session_state['selected_inputs'] = selected_inputs
+                    st.session_state['target_parameter'] = target_parameter
+                else:
+                    st.warning("No valid data after filtering for common dates.")
 
     # --- XAI (SHAP Analysis) ---
     st.subheader("2. XAI (SHAP Analysis)")
@@ -828,5 +842,3 @@ if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
             st.pyplot(fig)
         else:
             st.warning("Please train the model first.")
-
-
