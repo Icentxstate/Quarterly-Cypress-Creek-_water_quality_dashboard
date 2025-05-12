@@ -179,69 +179,7 @@ if selected_analysis == "Summary Statistics":
             })
         )
         st.dataframe(summary)
-# --- Advanced Analysis Tabs (Add XAI and Predictive Modeling Tabs) ---
-st.sidebar.subheader("Advanced Analysis")
-adv_analysis_options = [
-    "Summary Statistics", "Monthly Averages", "Annual Averages", "Correlation Matrix",
-    "XAI (SHAP Analysis)", "Predictive Modeling"  # اینجا تب‌های جدید را اضافه کردیم
-]
-selected_analysis = st.sidebar.radio("Select Analysis:", adv_analysis_options)
-
-# --- XAI (SHAP Analysis) Section ---
-if selected_analysis == "XAI (SHAP Analysis)":
-    st.subheader("XAI (SHAP Analysis)")
-    xai_target = st.selectbox("Select Target for SHAP Analysis:", df.select_dtypes(include='number').columns)
-    
-    if st.button("Run SHAP Analysis"):
-        st.markdown("### Running SHAP Analysis...")
-        X = df.drop(columns=[xai_target, 'Date']).select_dtypes(include='number')
-        y = df[xai_target].dropna()
-        
-        # آموزش مدل XGBoost برای SHAP
-        model = xgb.XGBRegressor()
-        model.fit(X, y)
-        
-        # ایجاد SHAP Explainer
-        explainer = shap.Explainer(model, X)
-        shap_values = explainer(X)
-        
-        # نمایش نمودارهای SHAP
-        st.markdown("### SHAP Summary Plot")
-        shap.summary_plot(shap_values, X, show=False)
-        st.pyplot()
-        
-        st.markdown("### SHAP Decision Plot")
-        shap.decision_plot(explainer.expected_value, shap_values.values, X.columns)
-
-# --- Predictive Modeling Section ---
-if selected_adv_analysis == "Predictive Modeling":
-    st.subheader("Predictive Modeling")
-    predict_target = st.selectbox("Select Target for Prediction:", df.select_dtypes(include='number').columns)
-    
-    if st.button("Run Predictive Modeling"):
-        st.markdown("### Running Predictive Modeling...")
-        X = df.drop(columns=[predict_target, 'Date']).select_dtypes(include='number')
-        y = df[predict_target].dropna()
-        
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model = xgb.XGBRegressor()
-        model.fit(X_train, y_train)
-        
-        y_pred = model.predict(X_test)
-        rmse = mean_squared_error(y_test, y_pred, squared=False)
-        r2 = r2_score(y_test, y_pred)
-        
-        st.write(f"RMSE: {rmse:.4f}")
-        st.write(f"R² Score: {r2:.4f}")
-        
-        st.markdown("### Actual vs Predicted Plot")
-        fig, ax = plt.subplots()
-        ax.scatter(y_test, y_pred, alpha=0.6)
-        ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
-        ax.set_xlabel("Actual Values")
-        ax.set_ylabel("Predicted Values")
-        st.pyplot(fig)
-    if selected_analysis == "Monthly Averages":
+if selected_analysis == "Monthly Averages":
     st.subheader("Monthly Averages (Across Years)")
     
     month_names = {
@@ -398,7 +336,7 @@ df['Season'] = df['Month'].apply(lambda m: "Winter" if m in [12, 1, 2] else
                                              "Spring" if m in [3, 4, 5] else
                                              "Summer" if m in [6, 7, 8] else "Fall")
 
-# --- Advanced Analysis Tabs (Add XAI and Predictive Modeling Tabs) ---
+# --- Advanced Analysis in Sidebar ---
 st.sidebar.subheader("Advanced Analysis")
 adv_analysis_options = [
     "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter",
@@ -406,22 +344,21 @@ adv_analysis_options = [
     "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
     "Non-linear Correlation", "Rolling Mean & Variance", "Trendline Regression",
     "PCA Analysis", "Hierarchical Clustering", "Radar Plot",
-    "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting",
-    "XAI (SHAP Analysis)", "Predictive Modeling"
+    "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting"
+]
+# --- Advanced Analysis in Sidebar ---
+st.sidebar.subheader("Advanced Analysis")
+adv_analysis_options = [
+    "Seasonal Means", "Mann-Kendall Trend", "Flow vs Parameter",
+    "Water Quality Index", "KMeans Clustering", "Time-Spatial Heatmap",
+    "Boxplot by Site", "Normality Test", "Seasonal Decomposition",
+    "Non-linear Correlation", "Rolling Mean & Variance", "Trendline Regression",
+    "PCA Analysis", "Hierarchical Clustering", "Radar Plot",
+    "Autocorrelation (ACF)", "Partial Autocorrelation (PACF)", "Forecasting", 
+    "AI (XAI + Predictive Modeling)"
 ]
 selected_adv_analysis = st.sidebar.radio("Select Advanced Analysis:", adv_analysis_options)
-# --- Seasonal Means ---
-if selected_adv_analysis == "Seasonal Means":
-    st.subheader("Seasonal Averages")
-    for param in selected_parameters:
-        seasonal_avg = analysis_df.groupby(['Season', 'Site Name'])[param].mean().unstack()
-        st.markdown(f"**{param}**")
-        st.dataframe(seasonal_avg.round(2))
-        fig, ax = plt.subplots(figsize=(8, 4))
-        seasonal_avg.plot(kind='bar', ax=ax)
-        ax.set_ylabel(param)
-        ax.set_title(f"Seasonal Mean of {param}")
-        st.pyplot(fig)
+
 # --- Mann-Kendall Trend Test ---
 import pymannkendall as mk
 if selected_adv_analysis == "Mann-Kendall Trend":
@@ -794,3 +731,59 @@ if selected_adv_analysis == "Forecasting":
                 st.pyplot(fig)
     else:
         st.info("Please select at least one parameter.")
+
+if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
+    st.header("AI Analysis (XAI + Predictive Modeling)")
+
+    # --- XAI (SHAP Analysis) ---
+    st.subheader("1. XAI (SHAP Analysis)")
+    xai_target = st.selectbox("Select Target for SHAP Analysis:", df.select_dtypes(include='number').columns)
+    
+    if st.button("Run SHAP Analysis"):
+        X = df.drop(columns=[xai_target, 'Date']).select_dtypes(include='number')
+        y = df[xai_target].dropna()
+
+        model = xgb.XGBRegressor()
+        model.fit(X, y)
+
+        explainer = shap.Explainer(model, X)
+        shap_values = explainer(X)
+
+        st.markdown("### SHAP Summary Plot")
+        shap.summary_plot(shap_values, X, show=False)
+        st.pyplot()
+
+    # --- Predictive Modeling ---
+    st.subheader("2. Predictive Modeling")
+    predict_target = st.selectbox("Select Target for Prediction:", df.select_dtypes(include='number').columns)
+    selected_inputs = st.multiselect("Select Input Parameters:", df.select_dtypes(include='number').columns)
+    model_type = st.selectbox("Select Model Type:", ["Linear Regression", "RandomForest", "XGBoost"])
+
+    if st.button("Run Predictive Modeling"):
+        X = df[selected_inputs].dropna()
+        y = df[predict_target].dropna()
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        if model_type == "Linear Regression":
+            model = LinearRegression()
+        elif model_type == "RandomForest":
+            model = RandomForestRegressor()
+        else:
+            model = xgb.XGBRegressor()
+        
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        rmse = mean_squared_error(y_test, y_pred, squared=False)
+        r2 = r2_score(y_test, y_pred)
+
+        st.write(f"RMSE: {rmse:.4f}")
+        st.write(f"R2 Score: {r2:.4f}")
+
+        # Visualization
+        fig, ax = plt.subplots()
+        ax.scatter(y_test, y_pred, alpha=0.6)
+        ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+        ax.set_xlabel("Actual Values")
+        ax.set_ylabel("Predicted Values")
+        st.pyplot(fig)
+
