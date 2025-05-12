@@ -735,12 +735,15 @@ if selected_adv_analysis == "Forecasting":
 if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
     st.header("AI Analysis (XAI + Predictive Modeling)")
 
+if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
+    st.header("AI Analysis (XAI + Predictive Modeling)")
+
     # --- XAI (SHAP Analysis) ---
     st.subheader("1. XAI (SHAP Analysis)")
     xai_target = st.selectbox("Select Target for SHAP Analysis:", df.select_dtypes(include='number').columns)
     
     if st.button("Run SHAP Analysis"):
-        X = df.drop(columns=[xai_target, 'Date']).select_dtypes(include='number')
+        X = df.drop(columns=[xai_target, 'Date']).select_dtypes(include='number').dropna()
         y = df[xai_target].dropna()
 
         model = xgb.XGBRegressor()
@@ -760,30 +763,36 @@ if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
     model_type = st.selectbox("Select Model Type:", ["Linear Regression", "RandomForest", "XGBoost"])
 
     if st.button("Run Predictive Modeling"):
-        X = df[selected_inputs].dropna()
+        # پاکسازی داده ها
+        X = df[selected_inputs].dropna().select_dtypes(include='number')
         y = df[predict_target].dropna()
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        if model_type == "Linear Regression":
-            model = LinearRegression()
-        elif model_type == "RandomForest":
-            model = RandomForestRegressor()
-        else:
-            model = xgb.XGBRegressor()
         
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        rmse = mean_squared_error(y_test, y_pred, squared=False)
-        r2 = r2_score(y_test, y_pred)
+        # اطمینان از اندازه یکسان داده ها
+        if len(X) == len(y):
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        st.write(f"RMSE: {rmse:.4f}")
-        st.write(f"R2 Score: {r2:.4f}")
+            if model_type == "Linear Regression":
+                model = LinearRegression()
+            elif model_type == "RandomForest":
+                model = RandomForestRegressor()
+            else:
+                model = xgb.XGBRegressor(use_label_encoder=False, eval_metric='rmse')
+            
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            rmse = mean_squared_error(y_test, y_pred, squared=False)
+            r2 = r2_score(y_test, y_pred)
 
-        # Visualization
-        fig, ax = plt.subplots()
-        ax.scatter(y_test, y_pred, alpha=0.6)
-        ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
-        ax.set_xlabel("Actual Values")
-        ax.set_ylabel("Predicted Values")
-        st.pyplot(fig)
+            st.write(f"RMSE: {rmse:.4f}")
+            st.write(f"R2 Score: {r2:.4f}")
+
+            # Visualization
+            fig, ax = plt.subplots()
+            ax.scatter(y_test, y_pred, alpha=0.6)
+            ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+            ax.set_xlabel("Actual Values")
+            ax.set_ylabel("Predicted Values")
+            st.pyplot(fig)
+        else:
+            st.warning("Data sizes do not match. Please ensure the selected input and target parameters have the same length.")
 
