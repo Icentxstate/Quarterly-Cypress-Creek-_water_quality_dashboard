@@ -10,7 +10,7 @@ import zipfile
 import io
 import math
 from matplotlib.ticker import FuncFormatter
-
+import xgboost as xgb
 # --- Page Configuration ---
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
