@@ -842,3 +842,4 @@ if selected_adv_analysis == "AI (XAI + Predictive Modeling)":
             st.pyplot(fig)
         else:
             st.warning("Please train the model first.")
+
