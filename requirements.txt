@@ -143,3 +143,14 @@ XlsxWriter==3.2.3
 xyzservices==2025.1.0
 prophet
 statsmodels
+pandas
+streamlit
+matplotlib
+seaborn
+scikit-learn
+xgboost
+shap
+prophet
+pymannkendall
+plotly
+openpyxl
