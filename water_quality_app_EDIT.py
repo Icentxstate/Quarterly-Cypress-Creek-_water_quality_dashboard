@@ -13,6 +13,59 @@ from matplotlib.ticker import FuncFormatter
 import xgboost as xgb
 # --- Page Configuration ---
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
+# --- Custom Style Setup ---
+st.markdown("""
+    <style>
+    /* بک‌گراند رنگی */
+    .stApp {
+        background-color: #f5f9ff;
+    }
+
+    /* فونت زیبا */
+    html, body, [class*="css"]  {
+        font-family: 'Segoe UI', sans-serif;
+        color: #1a1a1a;
+    }
+
+    /* هدرهای برجسته‌تر */
+    h1, h2, h3, h4 {
+        color: #2E8BC0;
+        font-weight: 600;
+    }
+
+    /* استایل متریک‌ها */
+    .stMetric {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 12px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 10px;
+    }
+
+    /* تب‌ها gap زیباتر */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+    }
+
+    /* رادیو دکمه‌ها افقی */
+    .stRadio > div {
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    /* فوتر */
+    footer {
+        visibility: hidden;
+    }
+
+    /* margin بهتر برای محتوای اصلی */
+    .block-container {
+        padding: 2rem 3rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 
 # --- Load Data ---
 file_path = r"INPUT.CSV"
@@ -73,81 +126,55 @@ color_palette = sns.color_palette("hsv", len(selected_sites))
 site_colors = dict(zip(selected_sites, color_palette))
 
 # --- Main Content (Right Side for Graphs and Outputs) ---
-st.title("Water Quality Dashboard")
+# --- Stylish Header ---
+st.markdown("""
+    <div style='text-align: center;'>
+        <h1 style='color: #2E8BC0;'>💧 Cypress Creek Water Quality Dashboard</h1>
+        <p style='font-size:18px;'>Monitoring trends, summaries, and site insights</p>
+        <hr style='margin-top: 1rem; margin-bottom: 1rem; border: none; height: 2px; background-color: #2E8BC0;'/>
+    </div>
+""", unsafe_allow_html=True)
 
-# --- Site Map Section ---
-st.subheader("Enhanced Site Map")
+# --- Summary Cards (Metrics) ---
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("🧪 Parameters Selected", f"{len(selected_parameters)}")
+with col2:
+    st.metric("📍 Sites Selected", f"{len(selected_sites)}")
+with col3:
+    if not df.empty:
+        st.metric("🗓️ Monitoring Range", f"{df['Date'].min().date()} → {df['Date'].max().date()}")
 
-# Calculate summary statistics for each selected site
-site_summaries = {}
-for site_id in selected_sites:
-    site_data = df[df['Site ID'] == site_id]
-    if not site_data.empty:
-        site_summaries[site_id] = {
-            "Mean Values": site_data[selected_parameters].mean().round(2).to_dict(),
-            "Start Date": site_data['Date'].min().strftime('%Y-%m-%d'),
-            "End Date": site_data['Date'].max().strftime('%Y-%m-%d')
-        }
 
-avg_lat = selected_locations['Latitude'].mean() if not selected_locations.empty else locations['Latitude'].mean()
-avg_lon = selected_locations['Longitude'].mean() if not selected_locations.empty else locations['Longitude'].mean()
+# --- Use Tabs to Organize Output ---
+tab1, tab2 = st.tabs(["📈 Time Series Plots", "📑 Summary Table"])
 
-# Create an enhanced map with 3D markers
-m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13, width='100%', height='100%')
-
-for _, row in selected_locations.iterrows():
-    site_id = row['Site ID']
-    summary = site_summaries.get(site_id, {})
-    summary_text = f"<b>Site ID:</b> {site_id}<br>"
-    summary_text += f"<b>Description:</b> {row['Description']}<br>"
-    
-    if summary:
-        summary_text += f"<b>Start Date:</b> {summary['Start Date']}<br>"
-        summary_text += f"<b>End Date:</b> {summary['End Date']}<br>"
-        summary_text += "<b>Parameter Means:</b><br>"
-        for param, value in summary.get("Mean Values", {}).items():
-            summary_text += f"{param}: {value}<br>"
+with tab1:
+    if not selected_parameters:
+        st.warning("Please select at least one parameter.")
     else:
-        summary_text += "No data available."
+        for param in selected_parameters:
+            st.markdown(f"#### {param} Trends")
+            plot_df = df[df['Site ID'].isin(selected_sites)].dropna(subset=[param])
+            fig = px.line(
+                plot_df, x='YearMonth', y=param, color='Site Name',
+                markers=True, title=f"{param} Over Time",
+                labels={'YearMonth': 'Date', param: param},
+                template='plotly_white'
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Add a 3D-style marker with popup
-    folium.Marker(
-        location=[row['Latitude'], row['Longitude']],
-        popup=folium.Popup(summary_text, max_width=300),
-        tooltip=row['Description'],
-        icon=folium.Icon(color='red', icon='info-sign')
-    ).add_to(m)
-
-# Display the enhanced map with a larger size
-st_folium(m, width=700, height=600)
-
-# --- Time Series Plots Section ---
-st.header("Time Series Plots")
-plot_df = df[df['Site ID'].isin(selected_sites)]
-
-if not selected_parameters:
-    st.warning("Please select at least one parameter.")
-else:
+with tab2:
+    st.markdown("### Summary Statistics by Site")
     for param in selected_parameters:
-        fig, ax = plt.subplots(figsize=(10, 4))
-        for site_id in selected_sites:
-            site_data = plot_df[plot_df['Site ID'] == site_id]
-            if site_data.empty:
-                continue  # Skip if no data for this site
-            site_name = site_data['Site Name'].iloc[0]
-            color = site_colors.get(site_id, 'blue')  # Default to blue if color not found
-            
-            if chart_type == "Scatter (Points)":
-                ax.scatter(site_data['YearMonth'], site_data[param], label=site_name, color=color, s=30)
-            else:
-                ax.plot(site_data['YearMonth'], site_data[param], label=site_name, color=color)
-        
-        ax.set_title(f"{param} Over Time (Monthly)")
-        ax.set_xlabel("Year-Month")
-        ax.set_ylabel(param)
-        ax.legend(title='Site')
-        ax.grid(True)
-        st.pyplot(fig)
+        st.markdown(f"**{param}**")
+        summary = (
+            df[df['Site ID'].isin(selected_sites)]
+            .groupby('Site Name')[param]
+            .agg(['mean', 'median', 'std', 'min', 'max', 'count'])
+            .round(2)
+        )
+        st.dataframe(summary)
 
 # --- Statistical Analysis Tabs ---
 st.sidebar.subheader("Statistical Analysis")
