@@ -25,6 +25,48 @@ import plotly.express as px
 from prophet import Prophet
 import shap
 # Part 1-------------------------------------------------------------------------------------------------------
+st.markdown("""
+    <style>
+    h1, h2, h3, h4 {
+        color: #2E8BC0 !important;
+    }
+
+    .stMetric {
+        background-color: #EAF6FF;
+        border: 1px solid #B8D9F5;
+    }
+
+    .stRadio > div > div {
+        background-color: #f0f8ff;
+        border-radius: 8px;
+        padding: 0.3rem;
+    }
+
+    .stButton > button {
+        background-color: #2E8BC0;
+        color: white;
+        border-radius: 8px;
+        font-weight: bold;
+    }
+
+    .stDownloadButton button {
+        background-color: #1B98E0;
+        color: white;
+        font-weight: bold;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+    }
+
+    .stDataFrame {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+
+    .css-1cpxqw2 edgvbvh3 {  /* for dataframe scroll color in dark mode */
+        background-color: #F8FBFF !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 # --- Page Configuration ---
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
